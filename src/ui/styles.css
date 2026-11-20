@@ -444,3 +444,17 @@ body {
   font-weight: 700;
   font-size: 0.95rem;
 }
+
+.workspace-with-inspector {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.inspector-sidebar {
+  position: sticky;
+  top: 1rem;
+  max-height: 80vh;
+  overflow: auto;
+}

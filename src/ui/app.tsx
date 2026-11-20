@@ -17,6 +17,7 @@ import type {
   SdvProjectMetadata,
 } from '../data/models/index.js';
 import {
+  CodeInspector,
   ConfigEditor,
   CropWizard,
   DialogueEditor,
@@ -80,6 +81,7 @@ export function App(): React.JSX.Element {
   );
   const [activeProject, setActiveProject] = useState<SdvProjectFile | null>(null);
   const [activeTab, setActiveTab] = useState<EditorTab>('manifest');
+  const [showInspector, setShowInspector] = useState<boolean>(false);
   const [importError, setImportError] = useState<string | null>(null);
 
   const openAndRememberProject = (project: SdvProjectFile): void => {
@@ -183,13 +185,22 @@ export function App(): React.JSX.Element {
           <p className="app-subtitle">Content Patcher Pack Studio (SMAPI 4.0+)</p>
         </div>
         {activeProject !== null && (
-          <button
-            type="button"
-            className="secondary-btn"
-            onClick={() => { setActiveProject(null); }}
-          >
-            Back to Dashboard
-          </button>
+          <div className="inline-row">
+            <button
+              type="button"
+              className={showInspector ? 'season-btn active' : 'secondary-btn'}
+              onClick={() => { setShowInspector(!showInspector); }}
+            >
+              {showInspector ? 'Hide Code Inspector' : 'Live Code Inspector'}
+            </button>
+            <button
+              type="button"
+              className="secondary-btn"
+              onClick={() => { setActiveProject(null); }}
+            >
+              Back to Dashboard
+            </button>
+          </div>
         )}
       </header>
 
@@ -244,80 +255,90 @@ export function App(): React.JSX.Element {
             ))}
           </nav>
 
-          {activeTab === 'manifest' && (
-            <ManifestEditor metadata={activeProject.metadata} onChange={handleMetadataChange} />
-          )}
-          {activeTab === 'objects' && (
-            <ObjectCreator
-              uniqueId={activeProject.metadata.uniqueId}
-              objects={objectEdits}
-              onAddObject={(entry) => { updateProjectEdits([...activeProject.edits, entry]); }}
-              onUpdateObject={(entry) => {
-                updateProjectEdits(
-                  activeProject.edits.map((item) => (item.id === entry.id ? entry : item)),
-                );
-              }}
-              onRemoveObject={(id) => {
-                updateProjectEdits(activeProject.edits.filter((item) => item.id !== id));
-              }}
-            />
-          )}
-          {activeTab === 'crops' && (
-            <CropWizard
-              uniqueId={activeProject.metadata.uniqueId}
-              crops={cropEdits}
-              objects={objectEdits}
-              onAddCrop={(entry) => { updateProjectEdits([...activeProject.edits, entry]); }}
-              onUpdateCrop={(entry) => {
-                updateProjectEdits(
-                  activeProject.edits.map((item) => (item.id === entry.id ? entry : item)),
-                );
-              }}
-              onRemoveCrop={(id) => {
-                updateProjectEdits(activeProject.edits.filter((item) => item.id !== id));
-              }}
-            />
-          )}
-          {activeTab === 'retexture' && (
-            <RetexturePatcher
-              retextures={retextureEdits}
-              assets={activeProject.assets}
-              onAddRetexture={handleAddRetexture}
-              onRemoveRetexture={(id) => {
-                updateProjectEdits(activeProject.edits.filter((item) => item.id !== id));
-              }}
-            />
-          )}
-          {activeTab === 'dialogue' && (
-            <DialogueEditor
-              dialogues={dialogueEdits}
-              onAddDialogue={(entry) => { updateProjectEdits([...activeProject.edits, entry]); }}
-              onUpdateDialogue={(entry) => {
-                updateProjectEdits(
-                  activeProject.edits.map((item) => (item.id === entry.id ? entry : item)),
-                );
-              }}
-              onRemoveDialogue={(id) => {
-                updateProjectEdits(activeProject.edits.filter((item) => item.id !== id));
-              }}
-            />
-          )}
-          {activeTab === 'config' && (
-            <ConfigEditor
-              options={activeProject.configOptions ?? []}
-              onChange={handleConfigChange}
-            />
-          )}
-          {activeTab === 'pixel' && <PixelEditor />}
-          {activeTab === 'i18n' && (
-            <I18nEditor
-              project={activeProject}
-              onChangeTranslations={handleTranslationsChange}
-            />
-          )}
-          {activeTab === 'preview' && (
-            <InGamePreview objects={objectEdits} dialogues={dialogueEdits} />
-          )}
+          <div className={showInspector ? 'workspace-with-inspector' : ''}>
+            <div className="workspace-main">
+              {activeTab === 'manifest' && (
+                <ManifestEditor
+                  metadata={activeProject.metadata}
+                  onChange={handleMetadataChange}
+                />
+              )}
+              {activeTab === 'objects' && (
+                <ObjectCreator
+                  uniqueId={activeProject.metadata.uniqueId}
+                  objects={objectEdits}
+                  onAddObject={(entry) => { updateProjectEdits([...activeProject.edits, entry]); }}
+                  onUpdateObject={(entry) => {
+                    updateProjectEdits(
+                      activeProject.edits.map((item) => (item.id === entry.id ? entry : item)),
+                    );
+                  }}
+                  onRemoveObject={(id) => {
+                    updateProjectEdits(activeProject.edits.filter((item) => item.id !== id));
+                  }}
+                />
+              )}
+              {activeTab === 'crops' && (
+                <CropWizard
+                  uniqueId={activeProject.metadata.uniqueId}
+                  crops={cropEdits}
+                  objects={objectEdits}
+                  onAddCrop={(entry) => { updateProjectEdits([...activeProject.edits, entry]); }}
+                  onUpdateCrop={(entry) => {
+                    updateProjectEdits(
+                      activeProject.edits.map((item) => (item.id === entry.id ? entry : item)),
+                    );
+                  }}
+                  onRemoveCrop={(id) => {
+                    updateProjectEdits(activeProject.edits.filter((item) => item.id !== id));
+                  }}
+                />
+              )}
+              {activeTab === 'retexture' && (
+                <RetexturePatcher
+                  retextures={retextureEdits}
+                  assets={activeProject.assets}
+                  onAddRetexture={handleAddRetexture}
+                  onRemoveRetexture={(id) => {
+                    updateProjectEdits(activeProject.edits.filter((item) => item.id !== id));
+                  }}
+                />
+              )}
+              {activeTab === 'dialogue' && (
+                <DialogueEditor
+                  dialogues={dialogueEdits}
+                  onAddDialogue={(entry) => {
+                    updateProjectEdits([...activeProject.edits, entry]);
+                  }}
+                  onUpdateDialogue={(entry) => {
+                    updateProjectEdits(
+                      activeProject.edits.map((item) => (item.id === entry.id ? entry : item)),
+                    );
+                  }}
+                  onRemoveDialogue={(id) => {
+                    updateProjectEdits(activeProject.edits.filter((item) => item.id !== id));
+                  }}
+                />
+              )}
+              {activeTab === 'config' && (
+                <ConfigEditor
+                  options={activeProject.configOptions ?? []}
+                  onChange={handleConfigChange}
+                />
+              )}
+              {activeTab === 'pixel' && <PixelEditor />}
+              {activeTab === 'i18n' && (
+                <I18nEditor
+                  project={activeProject}
+                  onChangeTranslations={handleTranslationsChange}
+                />
+              )}
+              {activeTab === 'preview' && (
+                <InGamePreview objects={objectEdits} dialogues={dialogueEdits} />
+              )}
+            </div>
+            {showInspector && <CodeInspector project={activeProject} />}
+          </div>
         </>
       )}
     </main>
