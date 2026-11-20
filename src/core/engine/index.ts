@@ -5,6 +5,7 @@ export * from './dialogue-tokens.js';
 export * from './i18n-generator.js';
 export * from './id-version-generator.js';
 export * from './mod-compiler.js';
+export * from './mod-exporter.js';
 export * from './pixel-grid.js';
 export * from './project-templates.js';
 export * from './sprite-patcher.js';
