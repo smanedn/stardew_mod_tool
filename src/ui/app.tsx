@@ -6,20 +6,25 @@ import {
 } from '../core/engine/project-templates.js';
 import type {
   CropEditEntry,
+  DialogueEditEntry,
+  LinkedAssetEntry,
   ObjectEditEntry,
+  RetextureEditEntry,
   SdvProjectEdit,
   SdvProjectFile,
   SdvProjectMetadata,
 } from '../data/models/index.js';
 import {
   CropWizard,
+  DialogueEditor,
   ManifestEditor,
   ObjectCreator,
   ProjectDashboard,
+  RetexturePatcher,
 } from './components/index.js';
 import './styles.css';
 
-type EditorTab = 'manifest' | 'objects' | 'crops';
+type EditorTab = 'manifest' | 'objects' | 'crops' | 'retexture' | 'dialogue';
 
 const RECENT_STORAGE_KEY = 'sdv_mod_creator_recent_projects';
 
@@ -104,6 +109,22 @@ export function App(): React.JSX.Element {
     activeProject?.edits.filter((e): e is ObjectEditEntry => e.kind === 'object') ?? [];
   const cropEdits: readonly CropEditEntry[] =
     activeProject?.edits.filter((e): e is CropEditEntry => e.kind === 'crop') ?? [];
+  const retextureEdits: readonly RetextureEditEntry[] =
+    activeProject?.edits.filter((e): e is RetextureEditEntry => e.kind === 'retexture') ?? [];
+  const dialogueEdits: readonly DialogueEditEntry[] =
+    activeProject?.edits.filter((e): e is DialogueEditEntry => e.kind === 'dialogue') ?? [];
+
+  const handleAddRetexture = (entry: RetextureEditEntry, newAsset?: LinkedAssetEntry): void => {
+    if (activeProject === null) {
+      return;
+    }
+    openAndRememberProject({
+      ...activeProject,
+      updatedAt: new Date().toISOString(),
+      assets: newAsset !== undefined ? [...activeProject.assets, newAsset] : activeProject.assets,
+      edits: [...activeProject.edits, entry],
+    });
+  };
 
   return (
     <main className="app-shell">
@@ -134,7 +155,7 @@ export function App(): React.JSX.Element {
       ) : (
         <>
           <nav className="workspace-tabs">
-            {(['manifest', 'objects', 'crops'] as const).map((tab) => (
+            {(['manifest', 'objects', 'crops', 'retexture', 'dialogue'] as const).map((tab) => (
               <button
                 key={tab}
                 type="button"
@@ -145,7 +166,11 @@ export function App(): React.JSX.Element {
                   ? 'Manifest & Config'
                   : tab === 'objects'
                     ? 'Custom Objects'
-                    : 'Crops & Seeds'}
+                    : tab === 'crops'
+                      ? 'Crops & Seeds'
+                      : tab === 'retexture'
+                        ? 'Retexture'
+                        : 'NPC Dialogue'}
               </button>
             ))}
           </nav>
@@ -180,6 +205,30 @@ export function App(): React.JSX.Element {
                 );
               }}
               onRemoveCrop={(id) => {
+                updateProjectEdits(activeProject.edits.filter((item) => item.id !== id));
+              }}
+            />
+          )}
+          {activeTab === 'retexture' && (
+            <RetexturePatcher
+              retextures={retextureEdits}
+              assets={activeProject.assets}
+              onAddRetexture={handleAddRetexture}
+              onRemoveRetexture={(id) => {
+                updateProjectEdits(activeProject.edits.filter((item) => item.id !== id));
+              }}
+            />
+          )}
+          {activeTab === 'dialogue' && (
+            <DialogueEditor
+              dialogues={dialogueEdits}
+              onAddDialogue={(entry) => { updateProjectEdits([...activeProject.edits, entry]); }}
+              onUpdateDialogue={(entry) => {
+                updateProjectEdits(
+                  activeProject.edits.map((item) => (item.id === entry.id ? entry : item)),
+                );
+              }}
+              onRemoveDialogue={(id) => {
                 updateProjectEdits(activeProject.edits.filter((item) => item.id !== id));
               }}
             />

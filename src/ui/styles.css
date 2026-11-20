@@ -281,3 +281,14 @@ body {
   font-weight: 600;
   cursor: pointer;
 }
+
+.selected-card {
+  border-color: #5a381e;
+  background: #fdf6e4;
+}
+
+.token-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
