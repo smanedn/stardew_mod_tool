@@ -10,6 +10,7 @@ import type { DialogueEditEntry } from '../../data/models/index.js';
 
 export interface DialogueEditorProps {
   readonly dialogues: readonly DialogueEditEntry[];
+  readonly showAdvanced?: boolean;
   readonly onAddDialogue: (entry: DialogueEditEntry) => void;
   readonly onUpdateDialogue: (entry: DialogueEditEntry) => void;
   readonly onRemoveDialogue: (id: string) => void;
@@ -46,7 +47,7 @@ function DialogueCard(props: {
 
       <div className="inline-row">
         <label className="form-field">
-          <span>Villager</span>
+          <span>Choose Villager</span>
           <select
             value={entry.npcName}
             onChange={(e) => { props.onUpdate({ ...entry, npcName: e.target.value }); }}
@@ -60,42 +61,39 @@ function DialogueCard(props: {
         </label>
 
         <label className="form-field">
-          <span>Dialogue Key (Daily / Seasonal / Marriage)</span>
-          <input
-            type="text"
-            list={`dialogue-keys-${entry.id}`}
+          <span>When do they say this?</span>
+          <select
             value={entry.dialogueKey}
             onChange={(e) => { props.onUpdate({ ...entry, dialogueKey: e.target.value }); }}
-          />
-          <datalist id={`dialogue-keys-${entry.id}`}>
+          >
             {DIALOGUE_KEY_PRESETS.map((preset) => (
               <option key={preset.key} value={preset.key}>
                 {preset.label} ({preset.group})
               </option>
             ))}
-          </datalist>
+          </select>
         </label>
       </div>
 
       <div className="form-field">
-        <span>Insert Game Token</span>
+        <span>Quick Insert (Expressions &amp; Names)</span>
         <div className="token-toolbar">
           {DIALOGUE_GAME_TOKENS.map((item) => (
             <button
               key={item.token}
               type="button"
               className="secondary-btn"
-              title={item.label}
+              title={item.token}
               onClick={() => { handleInsertToken(item.token); }}
             >
-              {item.token} ({item.label})
+              {item.label}
             </button>
           ))}
         </div>
       </div>
 
       <label className="form-field">
-        <span>Dialogue Text</span>
+        <span>What should {entry.npcName} say?</span>
         <textarea
           ref={textareaRef}
           rows={3}
@@ -108,6 +106,7 @@ function DialogueCard(props: {
 }
 
 export function DialogueEditor(props: DialogueEditorProps): React.JSX.Element {
+  const showAdvanced = props.showAdvanced ?? false;
   const handleAdd = (): void => {
     props.onAddDialogue({
       kind: 'dialogue',
@@ -125,14 +124,14 @@ export function DialogueEditor(props: DialogueEditorProps): React.JSX.Element {
     <div className="editor-split">
       <div className="module-container">
         <div className="module-toolbar">
-          <h3>NPC Dialogue & Event Editor ({String(props.dialogues.length)})</h3>
+          <h3>Villager Chat ({String(props.dialogues.length)})</h3>
           <button type="button" className="secondary-btn" onClick={handleAdd}>
-            + New Dialogue
+            + Add Villager Line
           </button>
         </div>
         {props.dialogues.length === 0 ? (
           <p className="muted-text">
-            No dialogue edits yet. Click &quot;+ New Dialogue&quot; to start.
+            No villager lines yet. Click &quot;+ Add Villager Line&quot; to start!
           </p>
         ) : (
           props.dialogues.map((entry) => (
@@ -147,7 +146,7 @@ export function DialogueEditor(props: DialogueEditorProps): React.JSX.Element {
       </div>
 
       <aside className="json-preview-panel">
-        <h4>Live Dialogue Preview</h4>
+        <h4>How It Looks In-Game</h4>
         {previewDlg !== undefined && parsedPreview !== null ? (
           <>
             <div className="sdv-dialogue-box">
@@ -165,11 +164,15 @@ export function DialogueEditor(props: DialogueEditorProps): React.JSX.Element {
                 <div className="sdv-npc-name">{previewDlg.npcName}</div>
               </div>
             </div>
-            <h4>Dialogue JSON</h4>
-            <pre>{JSON.stringify({ [previewDlg.dialogueKey]: previewDlg.text }, null, 2)}</pre>
+            {showAdvanced && (
+              <>
+                <h4>Dialogue JSON</h4>
+                <pre>{JSON.stringify({ [previewDlg.dialogueKey]: previewDlg.text }, null, 2)}</pre>
+              </>
+            )}
           </>
         ) : (
-          <p className="muted-text">Add a dialogue entry to preview the in-game box.</p>
+          <p className="muted-text">Add a villager line to preview the in-game dialogue box.</p>
         )}
       </aside>
     </div>

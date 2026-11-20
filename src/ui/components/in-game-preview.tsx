@@ -1,15 +1,35 @@
 import { useState } from 'react';
 import {
+  compileProjectToContentJson,
+  compileProjectToManifest,
+  serializeCleanJson,
+} from '../../core/engine/browser-compiler.js';
+import {
   type PortraitMood,
   computeEnergyHealthFromEdibility,
   formatObjectCategoryLabel,
   parseDialoguePreview,
 } from '../../core/engine/ui-simulator.js';
-import type { DialogueEditEntry, ObjectEditEntry } from '../../data/models/index.js';
+import type {
+  DialogueEditEntry,
+  ObjectEditEntry,
+  SdvProjectFile,
+} from '../../data/models/index.js';
 
 export interface InGamePreviewProps {
+  readonly project?: SdvProjectFile;
   readonly objects: readonly ObjectEditEntry[];
   readonly dialogues: readonly DialogueEditEntry[];
+}
+
+function downloadJsonFile(filename: string, text: string): void {
+  const blob = new Blob([text], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
 }
 
 const MOOD_EMOJI: Readonly<Record<PortraitMood, string>> = {
@@ -78,8 +98,35 @@ export function InGamePreview(props: InGamePreviewProps): React.JSX.Element {
   const activeObj = props.objects.find((o) => o.id === selectedObjId) ?? props.objects[0];
   const activeDlg = props.dialogues.find((d) => d.id === selectedDlgId) ?? props.dialogues[0];
 
+  const handleDownloadMod = (): void => {
+    if (props.project === undefined) {
+      return;
+    }
+    const manifestText = serializeCleanJson(compileProjectToManifest(props.project));
+    const contentText = serializeCleanJson(compileProjectToContentJson(props.project));
+    downloadJsonFile('manifest.json', manifestText);
+    downloadJsonFile('content.json', contentText);
+  };
+
   return (
     <div className="module-container">
+      {props.project !== undefined && (
+        <div className="module-card">
+          <div className="module-toolbar">
+            <div>
+              <h3>Ready to Play Your Mod?</h3>
+              <span className="muted-text">
+                1. Click Download • 2. Put both files in a folder inside Stardew Valley/Mods/ • 3.
+                Launch SMAPI!
+              </span>
+            </div>
+            <button type="button" className="launch-btn" onClick={handleDownloadMod}>
+              Download My Mod Files
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="module-card">
         <div className="module-toolbar">
           <h3>Inventory Tooltip Preview</h3>

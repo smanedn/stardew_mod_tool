@@ -7,18 +7,19 @@ import type { ObjectEditEntry, ObjectRecipeConfig } from '../../data/models/inde
 export interface ObjectCreatorProps {
   readonly uniqueId: string;
   readonly objects: readonly ObjectEditEntry[];
+  readonly showAdvanced?: boolean;
   readonly onAddObject: (entry: ObjectEditEntry) => void;
   readonly onUpdateObject: (entry: ObjectEditEntry) => void;
   readonly onRemoveObject: (id: string) => void;
 }
 
 const OBJECT_CATEGORIES: ReadonlyArray<{ readonly label: string; readonly value: number }> = [
-  { label: 'Cooking / Food (-7)', value: -7 },
-  { label: 'Vegetable (-75)', value: -75 },
-  { label: 'Fruit (-79)', value: -79 },
-  { label: 'Artisan Goods (-26)', value: -26 },
-  { label: 'Mineral / Material (-12)', value: -12 },
-  { label: 'Artifact / Basic (0)', value: 0 },
+  { label: 'Cooked Dish / Meal', value: -7 },
+  { label: 'Vegetable', value: -75 },
+  { label: 'Fruit', value: -79 },
+  { label: 'Artisan Good (Jam, Cheese, etc.)', value: -26 },
+  { label: 'Mineral / Gem / Material', value: -12 },
+  { label: 'Artifact / Keepsake', value: 0 },
 ];
 
 function RecipeSection(props: {
@@ -58,17 +59,17 @@ function RecipeSection(props: {
 
   return (
     <div className="form-field">
-      <span>Recipe (Optional)</span>
+      <span>How do players make it? (Optional Recipe)</span>
       <div className="inline-row">
         <select value={kind} onChange={(e) => { handleKindChange(e.target.value); }}>
           <option value="none">No Recipe</option>
-          <option value="cooking">Cooking Recipe</option>
-          <option value="crafting">Crafting Recipe</option>
+          <option value="cooking">Cook in Kitchen</option>
+          <option value="crafting">Craft in Inventory</option>
         </select>
         {props.recipe !== undefined && (
           <input
             type="text"
-            placeholder="Ingredients e.g. 246:1, 245:1"
+            placeholder="Item IDs e.g. 246:1, 245:1"
             value={ingredientsText}
             onChange={(e) => { handleIngredientsChange(e.target.value); }}
           />
@@ -80,6 +81,7 @@ function RecipeSection(props: {
 
 function ObjectCard(props: {
   readonly entry: ObjectEditEntry;
+  readonly showAdvanced: boolean;
   readonly onUpdate: (entry: ObjectEditEntry) => void;
   readonly onRemove: (id: string) => void;
 }): React.JSX.Element {
@@ -87,39 +89,42 @@ function ObjectCard(props: {
   const patch = (fields: Partial<ObjectEditEntry>): void => {
     props.onUpdate({ ...entry, ...fields });
   };
+  const isEdible = entry.edibility > 0;
 
   return (
     <div className="module-card">
       <div className="module-card-header">
-        <strong>{entry.displayName || 'Unnamed Object'}</strong>
+        <strong>{entry.displayName || 'Unnamed Item'}</strong>
         <button
           type="button"
           className="danger-btn"
           onClick={() => { props.onRemove(entry.id); }}
         >
-          Remove
+          Delete Item
         </button>
       </div>
       <div className="inline-row">
         <label className="form-field">
-          <span>Display Name</span>
+          <span>Item Name *</span>
           <input
             type="text"
             value={entry.displayName}
             onChange={(e) => { patch({ displayName: e.target.value }); }}
           />
         </label>
-        <label className="form-field">
-          <span>Item ID</span>
-          <input
-            type="text"
-            value={entry.itemId}
-            onChange={(e) => { patch({ itemId: e.target.value }); }}
-          />
-        </label>
+        {props.showAdvanced && (
+          <label className="form-field">
+            <span>Internal Item ID</span>
+            <input
+              type="text"
+              value={entry.itemId}
+              onChange={(e) => { patch({ itemId: e.target.value }); }}
+            />
+          </label>
+        )}
       </div>
       <label className="form-field">
-        <span>Description</span>
+        <span>Item Description</span>
         <input
           type="text"
           value={entry.description}
@@ -128,20 +133,12 @@ function ObjectCard(props: {
       </label>
       <div className="inline-row">
         <label className="form-field">
-          <span>Sell Price (g)</span>
+          <span>Sell Price (Gold)</span>
           <input
             type="number"
             min={0}
             value={entry.price}
             onChange={(e) => { patch({ price: Math.max(0, Number(e.target.value) || 0) }); }}
-          />
-        </label>
-        <label className="form-field">
-          <span>Edibility (-300 = inedible)</span>
-          <input
-            type="number"
-            value={entry.edibility}
-            onChange={(e) => { patch({ edibility: Number(e.target.value) || 0 }); }}
           />
         </label>
         <label className="form-field">
@@ -157,6 +154,29 @@ function ObjectCard(props: {
             ))}
           </select>
         </label>
+        <label className="form-field">
+          <span>Can the player eat it?</span>
+          <select
+            value={isEdible ? 'yes' : 'no'}
+            onChange={(e) => {
+              patch({ edibility: e.target.value === 'yes' ? 20 : -300 });
+            }}
+          >
+            <option value="yes">Yes (Restores Energy)</option>
+            <option value="no">No (Inedible)</option>
+          </select>
+        </label>
+        {isEdible && (
+          <label className="form-field">
+            <span>Edibility Strength</span>
+            <input
+              type="number"
+              min={1}
+              value={entry.edibility}
+              onChange={(e) => { patch({ edibility: Math.max(1, Number(e.target.value) || 1) }); }}
+            />
+          </label>
+        )}
       </div>
       <RecipeSection recipe={entry.recipe} onChange={(recipe) => { patch({ recipe }); }} />
     </div>
@@ -164,6 +184,7 @@ function ObjectCard(props: {
 }
 
 export function ObjectCreator(props: ObjectCreatorProps): React.JSX.Element {
+  const showAdvanced = props.showAdvanced ?? false;
   const handleAdd = (): void => {
     const nextIndex = props.objects.length + 1;
     props.onAddObject({
@@ -173,7 +194,7 @@ export function ObjectCreator(props: ObjectCreatorProps): React.JSX.Element {
       displayName: `Custom Item ${String(nextIndex)}`,
       description: 'A custom item.',
       price: 50,
-      edibility: 10,
+      edibility: 20,
       category: -75,
     });
   };
@@ -187,20 +208,21 @@ export function ObjectCreator(props: ObjectCreatorProps): React.JSX.Element {
     <div className="editor-split">
       <div className="module-container">
         <div className="module-toolbar">
-          <h3>Custom Objects Creator ({String(props.objects.length)})</h3>
+          <h3>New Items ({String(props.objects.length)})</h3>
           <button type="button" className="secondary-btn" onClick={handleAdd}>
-            + New Object
+            + Add New Item
           </button>
         </div>
         {props.objects.length === 0 ? (
           <p className="muted-text">
-            No custom objects yet. Click &quot;+ New Object&quot; to create one.
+            No items yet. Click &quot;+ Add New Item&quot; to create your first item!
           </p>
         ) : (
           props.objects.map((entry) => (
             <ObjectCard
               key={entry.id}
               entry={entry}
+              showAdvanced={showAdvanced}
               onUpdate={props.onUpdateObject}
               onRemove={props.onRemoveObject}
             />
@@ -209,7 +231,7 @@ export function ObjectCreator(props: ObjectCreatorProps): React.JSX.Element {
       </div>
 
       <aside className="json-preview-panel">
-        <h4>Live Object Preview</h4>
+        <h4>How It Looks In-Game</h4>
         {previewItem !== undefined && restore !== null ? (
           <>
             <div className="sdv-tooltip-box">
@@ -227,11 +249,15 @@ export function ObjectCreator(props: ObjectCreatorProps): React.JSX.Element {
               )}
               <div className="sdv-price-row">Sell Price: {String(previewItem.price)}g</div>
             </div>
-            <h4>Data/Objects JSON</h4>
-            <pre>{JSON.stringify(previewItem, null, 2)}</pre>
+            {showAdvanced && (
+              <>
+                <h4>Data/Objects JSON</h4>
+                <pre>{JSON.stringify(previewItem, null, 2)}</pre>
+              </>
+            )}
           </>
         ) : (
-          <p className="muted-text">Add an object to see its live Stardew tooltip & JSON.</p>
+          <p className="muted-text">Add an item to see its live Stardew Valley tooltip.</p>
         )}
       </aside>
     </div>

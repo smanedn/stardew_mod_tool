@@ -14,10 +14,25 @@ export interface ProjectDashboardProps {
   readonly importError: string | null;
 }
 
+const FRIENDLY_ICONS: Readonly<Record<ProjectTemplateId, string>> = {
+  object: '🍎',
+  crop: '🌾',
+  retexture: '🎨',
+  dialogue: '💬',
+};
+
+const FRIENDLY_TITLES: Readonly<Record<ProjectTemplateId, string>> = {
+  object: 'Add a New Item',
+  crop: 'Add a New Crop',
+  retexture: 'Repaint a Sprite',
+  dialogue: 'Change Villager Chat',
+};
+
 function ImportModSection(props: {
   readonly onImport: (json: string) => void;
   readonly error: string | null;
 }): React.JSX.Element {
+  const [open, setOpen] = useState(false);
   const [manifestText, setManifestText] = useState('');
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>): void => {
@@ -33,33 +48,45 @@ function ImportModSection(props: {
 
   return (
     <section className="dashboard-section">
-      <h3>Import Existing Content Patcher Mod</h3>
-      <div className="import-controls">
-        <label className="file-upload-btn">
-          Choose manifest.json
-          <input type="file" accept=".json" onChange={handleFileChange} hidden />
-        </label>
+      <div className="module-toolbar">
+        <div>
+          <h3>Already have a mod?</h3>
+          <span className="muted-text">Optional: open an existing mod&apos;s manifest.json</span>
+        </div>
         <button
           type="button"
           className="secondary-btn"
-          disabled={manifestText.trim().length === 0}
-          onClick={() => {
-            props.onImport(manifestText);
-          }}
+          onClick={() => { setOpen(!open); }}
         >
-          Import Pasted JSON
+          {open ? 'Hide Import' : 'Import Existing Mod'}
         </button>
       </div>
-      <textarea
-        className="manifest-paste-box"
-        rows={4}
-        placeholder="Or paste an existing manifest.json here..."
-        value={manifestText}
-        onChange={(e) => {
-          setManifestText(e.target.value);
-        }}
-      />
-      {props.error !== null && <p className="field-error">{props.error}</p>}
+      {open && (
+        <>
+          <div className="import-controls">
+            <label className="file-upload-btn">
+              Choose manifest.json File
+              <input type="file" accept=".json" onChange={handleFileChange} hidden />
+            </label>
+            <button
+              type="button"
+              className="secondary-btn"
+              disabled={manifestText.trim().length === 0}
+              onClick={() => { props.onImport(manifestText); }}
+            >
+              Open Pasted Mod
+            </button>
+          </div>
+          <textarea
+            className="manifest-paste-box"
+            rows={4}
+            placeholder="Or paste your manifest.json text here..."
+            value={manifestText}
+            onChange={(e) => { setManifestText(e.target.value); }}
+          />
+          {props.error !== null && <p className="field-error">{props.error}</p>}
+        </>
+      )}
     </section>
   );
 }
@@ -68,19 +95,22 @@ export function ProjectDashboard(props: ProjectDashboardProps): React.JSX.Elemen
   return (
     <div className="dashboard-container">
       <section className="dashboard-section">
-        <h3>Create New Mod from Template</h3>
+        <h3>What do you want to create today?</h3>
+        <p className="muted-text">
+          Pick one below — no coding needed! We will guide you step by step.
+        </p>
         <div className="template-grid">
           {PROJECT_TEMPLATES.map((tpl) => (
             <button
               key={tpl.id}
               type="button"
               className="template-card"
-              onClick={() => {
-                props.onCreateFromTemplate(tpl.id);
-              }}
+              onClick={() => { props.onCreateFromTemplate(tpl.id); }}
             >
-              <span className="template-badge">{tpl.badge}</span>
-              <strong>{tpl.title}</strong>
+              <span className="template-badge">
+                {FRIENDLY_ICONS[tpl.id]} {tpl.badge}
+              </span>
+              <strong>{FRIENDLY_TITLES[tpl.id]}</strong>
               <span className="template-desc">{tpl.description}</span>
             </button>
           ))}
@@ -88,9 +118,9 @@ export function ProjectDashboard(props: ProjectDashboardProps): React.JSX.Elemen
       </section>
 
       <section className="dashboard-section">
-        <h3>Recent Projects</h3>
+        <h3>Your Saved Mods</h3>
         {props.recentProjects.length === 0 ? (
-          <p className="muted-text">No recent projects yet. Pick a template above to start.</p>
+          <p className="muted-text">You haven&apos;t created any mods yet. Pick a card above!</p>
         ) : (
           <ul className="recent-list">
             {props.recentProjects.map((proj) => (
@@ -98,24 +128,20 @@ export function ProjectDashboard(props: ProjectDashboardProps): React.JSX.Elemen
                 <div>
                   <strong>{proj.metadata.name}</strong>{' '}
                   <span className="muted-text">v{proj.metadata.version}</span>
-                  <div className="muted-text">{proj.metadata.uniqueId}</div>
+                  <div className="muted-text">By {proj.metadata.author}</div>
                 </div>
                 <div className="inline-row">
                   <button
                     type="button"
                     className="secondary-btn"
-                    onClick={() => {
-                      props.onOpenRecent(proj);
-                    }}
+                    onClick={() => { props.onOpenRecent(proj); }}
                   >
-                    Open
+                    Edit Mod
                   </button>
                   <button
                     type="button"
                     className="danger-btn"
-                    onClick={() => {
-                      props.onDeleteRecent(proj.metadata.uniqueId);
-                    }}
+                    onClick={() => { props.onDeleteRecent(proj.metadata.uniqueId); }}
                   >
                     Delete
                   </button>

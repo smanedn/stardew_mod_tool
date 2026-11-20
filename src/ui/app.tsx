@@ -118,6 +118,7 @@ export function App(): React.JSX.Element {
     createUndoRedoHistory<SdvProjectFile>(),
   );
   const [activeTab, setActiveTab] = useState<EditorTab>('manifest');
+  const [advancedMode, setAdvancedMode] = useState<boolean>(false);
   const [showInspector, setShowInspector] = useState<boolean>(false);
   const [showOnboarding, setShowOnboarding] = useState<boolean>(loadInitialOnboarding);
   const [theme, setTheme] = useState<'light' | 'dark'>(loadInitialTheme);
@@ -416,6 +417,13 @@ export function App(): React.JSX.Element {
             <>
               <button
                 type="button"
+                className={advancedMode ? 'season-btn active' : 'secondary-btn'}
+                onClick={() => { setAdvancedMode(!advancedMode); }}
+              >
+                {advancedMode ? 'Simple Mode' : 'Advanced Mode'}
+              </button>
+              <button
+                type="button"
                 className="secondary-btn"
                 disabled={!canUndo(history)}
                 title="Undo (Ctrl+Z)"
@@ -432,13 +440,15 @@ export function App(): React.JSX.Element {
               >
                 Redo
               </button>
-              <button
-                type="button"
-                className={showInspector ? 'season-btn active' : 'secondary-btn'}
-                onClick={() => { setShowInspector(!showInspector); }}
-              >
-                {showInspector ? 'Hide Code Inspector' : 'Live Code Inspector'}
-              </button>
+              {advancedMode && (
+                <button
+                  type="button"
+                  className={showInspector ? 'season-btn active' : 'secondary-btn'}
+                  onClick={() => { setShowInspector(!showInspector); }}
+                >
+                  {showInspector ? 'Hide Code Inspector' : 'Live Code Inspector'}
+                </button>
+              )}
               <button
                 type="button"
                 className="danger-btn"
@@ -451,7 +461,7 @@ export function App(): React.JSX.Element {
                 className="secondary-btn"
                 onClick={() => { setActiveProject(null); }}
               >
-                Back to Dashboard
+                My Mods
               </button>
             </>
           )}
@@ -481,19 +491,28 @@ export function App(): React.JSX.Element {
       ) : (
         <>
           <nav className="workspace-tabs">
-            {(
-              [
-                'manifest',
-                'objects',
-                'crops',
-                'retexture',
-                'dialogue',
-                'config',
-                'pixel',
-                'i18n',
-                'preview',
-                'launch',
-              ] as const
+            {(advancedMode
+              ? ([
+                  'manifest',
+                  'objects',
+                  'crops',
+                  'dialogue',
+                  'retexture',
+                  'pixel',
+                  'preview',
+                  'config',
+                  'i18n',
+                  'launch',
+                ] as const)
+              : ([
+                  'manifest',
+                  'objects',
+                  'crops',
+                  'dialogue',
+                  'retexture',
+                  'pixel',
+                  'preview',
+                ] as const)
             ).map((tab) => (
               <button
                 key={tab}
@@ -502,33 +521,34 @@ export function App(): React.JSX.Element {
                 onClick={() => { setActiveTab(tab); }}
               >
                 {tab === 'manifest'
-                  ? 'Manifest'
+                  ? '1. Mod Info'
                   : tab === 'objects'
-                    ? 'Objects'
+                    ? '2. New Items'
                     : tab === 'crops'
-                      ? 'Crops'
-                      : tab === 'retexture'
-                        ? 'Retexture'
-                        : tab === 'dialogue'
-                          ? 'Dialogue'
-                          : tab === 'config'
-                            ? 'Config (GMCM)'
-                            : tab === 'pixel'
-                              ? 'Pixel Editor'
-                              : tab === 'i18n'
-                                ? 'i18n'
-                                : tab === 'preview'
-                                  ? 'Live Preview'
+                      ? '3. Crops'
+                      : tab === 'dialogue'
+                        ? '4. Villager Chat'
+                        : tab === 'retexture'
+                          ? '5. Sprites'
+                          : tab === 'pixel'
+                            ? '6. Draw Sprite'
+                            : tab === 'preview'
+                              ? '7. Preview & Export'
+                              : tab === 'config'
+                                ? 'Config (GMCM)'
+                                : tab === 'i18n'
+                                  ? 'Translations'
                                   : 'Test in Game'}
               </button>
             ))}
           </nav>
 
-          <div className={showInspector ? 'workspace-with-inspector' : ''}>
+          <div className={advancedMode && showInspector ? 'workspace-with-inspector' : ''}>
             <div className="workspace-main">
               {activeTab === 'manifest' && (
                 <ManifestEditor
                   metadata={activeProject.metadata}
+                  showAdvanced={advancedMode}
                   onChange={handleMetadataChange}
                 />
               )}
@@ -536,6 +556,7 @@ export function App(): React.JSX.Element {
                 <ObjectCreator
                   uniqueId={activeProject.metadata.uniqueId}
                   objects={objectEdits}
+                  showAdvanced={advancedMode}
                   onAddObject={(entry) => { updateProjectEdits([...activeProject.edits, entry]); }}
                   onUpdateObject={(entry) => {
                     updateProjectEdits(
@@ -576,6 +597,7 @@ export function App(): React.JSX.Element {
               {activeTab === 'dialogue' && (
                 <DialogueEditor
                   dialogues={dialogueEdits}
+                  showAdvanced={advancedMode}
                   onAddDialogue={(entry) => {
                     updateProjectEdits([...activeProject.edits, entry]);
                   }}
@@ -603,11 +625,15 @@ export function App(): React.JSX.Element {
                 />
               )}
               {activeTab === 'preview' && (
-                <InGamePreview objects={objectEdits} dialogues={dialogueEdits} />
+                <InGamePreview
+                  project={activeProject}
+                  objects={objectEdits}
+                  dialogues={dialogueEdits}
+                />
               )}
               {activeTab === 'launch' && <QuickLaunchPanel project={activeProject} />}
             </div>
-            {showInspector && <CodeInspector project={activeProject} />}
+            {advancedMode && showInspector && <CodeInspector project={activeProject} />}
           </div>
         </>
       )}

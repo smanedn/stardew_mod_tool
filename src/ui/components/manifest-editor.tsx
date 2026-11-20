@@ -5,15 +5,13 @@ import type { SdvProjectMetadata } from '../../data/models/index.js';
 
 export interface ManifestEditorProps {
   readonly metadata: SdvProjectMetadata;
+  readonly showAdvanced?: boolean;
   readonly onChange: (next: SdvProjectMetadata) => void;
 }
 
 function getValidationError(value: string, schema: z.ZodType<string>): string | null {
   const result = schema.safeParse(value);
-  if (result.success) {
-    return null;
-  }
-  return result.error.issues[0]?.message ?? 'Invalid value.';
+  return result.success ? null : (result.error.issues[0]?.message ?? 'Invalid value.');
 }
 
 function buildUpdateKeys(nexusId: string, modDropId: string): readonly string[] {
@@ -50,7 +48,11 @@ function buildManifestPreview(metadata: SdvProjectMetadata): string {
   );
 }
 
-export function ManifestEditor({ metadata, onChange }: ManifestEditorProps): React.JSX.Element {
+export function ManifestEditor({
+  metadata,
+  showAdvanced = false,
+  onChange,
+}: ManifestEditorProps): React.JSX.Element {
   const uniqueIdError = getValidationError(metadata.uniqueId, UniqueIdSchema);
   const versionError = getValidationError(metadata.version, SemVerSchema);
   const nexusId = extractUpdateKeyId(metadata.updateKeys, 'Nexus');
@@ -61,120 +63,144 @@ export function ManifestEditor({ metadata, onChange }: ManifestEditorProps): Rea
   };
 
   return (
-    <div className="editor-split">
+    <div className={showAdvanced ? 'editor-split' : 'module-container'}>
       <form className="manifest-form" onSubmit={(e) => { e.preventDefault(); }}>
-        <h3>Manifest & Mod Configuration</h3>
+        <h3>1. Tell us about your mod</h3>
+        <p className="muted-text">
+          Fill in your mod&apos;s name and your name. We handle all the technical IDs for you!
+        </p>
 
         <label className="form-field">
-          <span>Mod Name *</span>
+          <span>Mod Title *</span>
           <input
             type="text"
+            placeholder="e.g. Golden Starberry"
             value={metadata.name}
-            onChange={(e) => { updateField({ name: e.target.value }); }}
+            onChange={(e) => {
+              const nextName = e.target.value;
+              updateField({
+                name: nextName,
+                uniqueId: generateUniqueId(metadata.author, nextName),
+              });
+            }}
           />
         </label>
 
         <label className="form-field">
-          <span>Author *</span>
+          <span>Your Name (Author) *</span>
           <input
             type="text"
+            placeholder="e.g. Farmer"
             value={metadata.author}
-            onChange={(e) => { updateField({ author: e.target.value }); }}
+            onChange={(e) => {
+              const nextAuthor = e.target.value;
+              updateField({
+                author: nextAuthor,
+                uniqueId: generateUniqueId(nextAuthor, metadata.name),
+              });
+            }}
           />
         </label>
 
         <label className="form-field">
-          <span>UniqueID *</span>
-          <div className="inline-row">
-            <input
-              type="text"
-              value={metadata.uniqueId}
-              onChange={(e) => { updateField({ uniqueId: e.target.value }); }}
-            />
-            <button
-              type="button"
-              className="secondary-btn"
-              onClick={() => {
-                updateField({ uniqueId: generateUniqueId(metadata.author, metadata.name) });
-              }}
-            >
-              Auto-Generate
-            </button>
-          </div>
-          {uniqueIdError !== null && <span className="field-error">{uniqueIdError}</span>}
-        </label>
-
-        <label className="form-field">
-          <span>Version (SemVer) *</span>
-          <div className="inline-row">
-            <input
-              type="text"
-              value={metadata.version}
-              onChange={(e) => { updateField({ version: e.target.value }); }}
-            />
-            <button
-              type="button"
-              className="secondary-btn"
-              disabled={versionError !== null}
-              onClick={() => {
-                updateField({ version: incrementSemVer(metadata.version, 'patch') });
-              }}
-            >
-              +Patch
-            </button>
-            <button
-              type="button"
-              className="secondary-btn"
-              disabled={versionError !== null}
-              onClick={() => {
-                updateField({ version: incrementSemVer(metadata.version, 'minor') });
-              }}
-            >
-              +Minor
-            </button>
-          </div>
-          {versionError !== null && <span className="field-error">{versionError}</span>}
-        </label>
-
-        <label className="form-field">
-          <span>Description</span>
+          <span>What does your mod do? (Description)</span>
           <textarea
             rows={3}
+            placeholder="Describe your mod in one or two sentences..."
             value={metadata.description}
             onChange={(e) => { updateField({ description: e.target.value }); }}
           />
         </label>
 
-        <div className="inline-row">
-          <label className="form-field">
-            <span>Nexus Mods ID</span>
-            <input
-              type="text"
-              placeholder="e.g. 12345"
-              value={nexusId}
-              onChange={(e) => {
-                updateField({ updateKeys: buildUpdateKeys(e.target.value, modDropId) });
-              }}
-            />
-          </label>
-          <label className="form-field">
-            <span>ModDrop ID</span>
-            <input
-              type="text"
-              placeholder="e.g. 67890"
-              value={modDropId}
-              onChange={(e) => {
-                updateField({ updateKeys: buildUpdateKeys(nexusId, e.target.value) });
-              }}
-            />
-          </label>
-        </div>
+        {showAdvanced && (
+          <>
+            <label className="form-field">
+              <span>UniqueID (Advanced) *</span>
+              <div className="inline-row">
+                <input
+                  type="text"
+                  value={metadata.uniqueId}
+                  onChange={(e) => { updateField({ uniqueId: e.target.value }); }}
+                />
+                <button
+                  type="button"
+                  className="secondary-btn"
+                  onClick={() => {
+                    updateField({ uniqueId: generateUniqueId(metadata.author, metadata.name) });
+                  }}
+                >
+                  Auto-Generate
+                </button>
+              </div>
+              {uniqueIdError !== null && <span className="field-error">{uniqueIdError}</span>}
+            </label>
+
+            <label className="form-field">
+              <span>Version (SemVer) *</span>
+              <div className="inline-row">
+                <input
+                  type="text"
+                  value={metadata.version}
+                  onChange={(e) => { updateField({ version: e.target.value }); }}
+                />
+                <button
+                  type="button"
+                  className="secondary-btn"
+                  disabled={versionError !== null}
+                  onClick={() => {
+                    updateField({ version: incrementSemVer(metadata.version, 'patch') });
+                  }}
+                >
+                  +Patch
+                </button>
+                <button
+                  type="button"
+                  className="secondary-btn"
+                  disabled={versionError !== null}
+                  onClick={() => {
+                    updateField({ version: incrementSemVer(metadata.version, 'minor') });
+                  }}
+                >
+                  +Minor
+                </button>
+              </div>
+              {versionError !== null && <span className="field-error">{versionError}</span>}
+            </label>
+
+            <div className="inline-row">
+              <label className="form-field">
+                <span>Nexus Mods ID</span>
+                <input
+                  type="text"
+                  placeholder="e.g. 12345"
+                  value={nexusId}
+                  onChange={(e) => {
+                    updateField({ updateKeys: buildUpdateKeys(e.target.value, modDropId) });
+                  }}
+                />
+              </label>
+              <label className="form-field">
+                <span>ModDrop ID</span>
+                <input
+                  type="text"
+                  placeholder="e.g. 67890"
+                  value={modDropId}
+                  onChange={(e) => {
+                    updateField({ updateKeys: buildUpdateKeys(nexusId, e.target.value) });
+                  }}
+                />
+              </label>
+            </div>
+          </>
+        )}
       </form>
 
-      <aside className="json-preview-panel">
-        <h4>Live manifest.json</h4>
-        <pre>{buildManifestPreview(metadata)}</pre>
-      </aside>
+      {showAdvanced && (
+        <aside className="json-preview-panel">
+          <h4>Live manifest.json</h4>
+          <pre>{buildManifestPreview(metadata)}</pre>
+        </aside>
+      )}
     </div>
   );
 }
