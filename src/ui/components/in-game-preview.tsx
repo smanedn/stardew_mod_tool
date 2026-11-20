@@ -7,7 +7,9 @@ import {
 import { createBrowserModZipBytes } from '../../core/engine/browser-zip.js';
 import {
   detectModsFolderViaTauri,
+  detectSvmmViaTauri,
   exportModToModsViaTauri,
+  exportModToSvmmViaTauri,
   isTauriDesktopRuntime,
 } from '../../core/engine/tauri-bridge.js';
 import {
@@ -101,6 +103,8 @@ export function InGamePreview(props: InGamePreviewProps): React.JSX.Element {
   const [selectedDlgId, setSelectedDlgId] = useState<string>(props.dialogues[0]?.id ?? '');
   const [farmerName, setFarmerName] = useState<string>('Farmer');
   const [exportStatus, setExportStatus] = useState<string | null>(null);
+  const [svmmDir, setSvmmDir] = useState<string>('SVMM_Data');
+  const [svmmModpack, setSvmmModpack] = useState<string>('Default');
   const isDesktop = isTauriDesktopRuntime();
 
   const activeObj = props.objects.find((o) => o.id === selectedObjId) ?? props.objects[0];
@@ -152,6 +156,18 @@ export function InGamePreview(props: InGamePreviewProps): React.JSX.Element {
     });
   };
 
+  const handleSvmmExport = (): void => {
+    if (props.project === undefined) {
+      return;
+    }
+    const activeProj = props.project;
+    void detectSvmmViaTauri(svmmDir).then(async (info) => {
+      const targetSvmm = info?.svmmDataDir ?? svmmDir;
+      const outDir = await exportModToSvmmViaTauri(targetSvmm, svmmModpack, activeProj);
+      setExportStatus(`Sent to SVMM modpack "${svmmModpack}" at ${outDir}!`);
+    });
+  };
+
   return (
     <div className="module-container">
       {props.project !== undefined && (
@@ -186,6 +202,25 @@ export function InGamePreview(props: InGamePreviewProps): React.JSX.Element {
             </div>
           </div>
           {exportStatus !== null && <p className="muted-text">{exportStatus}</p>}
+          {isDesktop && (
+            <div className="inline-row">
+              <input
+                type="text"
+                placeholder="SVMM_Data path"
+                value={svmmDir}
+                onChange={(e) => { setSvmmDir(e.target.value); }}
+              />
+              <input
+                type="text"
+                placeholder="SVMM Modpack Name"
+                value={svmmModpack}
+                onChange={(e) => { setSvmmModpack(e.target.value); }}
+              />
+              <button type="button" className="secondary-btn" onClick={handleSvmmExport}>
+                Send to SVMM Modpack
+              </button>
+            </div>
+          )}
         </div>
       )}
 

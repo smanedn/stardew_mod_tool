@@ -13,6 +13,7 @@ export * from './recovery-manager.js';
 export * from './smapi-launcher.js';
 export * from './smapi-log-parser.js';
 export * from './sprite-patcher.js';
+export * from './svmm-integration.js';
 export * from './tauri-bridge.js';
 export * from './ui-simulator.js';
 export * from './undo-redo.js';

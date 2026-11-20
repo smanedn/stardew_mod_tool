@@ -29,6 +29,52 @@ export async function detectModsFolderViaTauri(): Promise<string | null> {
   return invoke<string | null>('detect_stardew_mods_dir');
 }
 
+export interface TauriSvmmInfo {
+  readonly svmmDataDir: string;
+  readonly modpacks: readonly string[];
+}
+
+/**
+ * Discovers SVMM_Data/modpacks via the native Tauri backend.
+ */
+export async function detectSvmmViaTauri(
+  svmmDataDirHint?: string,
+): Promise<TauriSvmmInfo | null> {
+  if (!isTauriDesktopRuntime()) {
+    return null;
+  }
+  return invoke<TauriSvmmInfo | null>('detect_svmm_modpacks', {
+    svmmDataDirHint: svmmDataDirHint ?? null,
+  });
+}
+
+/**
+ * Exports the compiled mod directly into an SVMM modpack folder via Tauri.
+ */
+export async function exportModToSvmmViaTauri(
+  svmmDataDir: string,
+  modpackName: string,
+  project: SdvProjectFile,
+): Promise<string> {
+  const folderName = formatBrowserZipRootName(project.metadata.name);
+  const files: readonly TauriExportFilePayload[] = [
+    {
+      relativePath: 'manifest.json',
+      content: serializeCleanJson(compileProjectToManifest(project)),
+    },
+    {
+      relativePath: 'content.json',
+      content: serializeCleanJson(compileProjectToContentJson(project)),
+    },
+  ];
+  return invoke<string>('export_mod_to_svmm_modpack', {
+    svmmDataDir,
+    modpackName,
+    modFolderName: folderName,
+    files,
+  });
+}
+
 /**
  * Exports manifest.json and content.json directly into the user's Mods/ folder via Tauri.
  */
