@@ -13,6 +13,11 @@ export interface DebouncedTask<TArgs extends readonly unknown[]> {
   pending: () => boolean;
 }
 
+function resolveEffectiveDelay(delayMs: number, options: DebounceOptions): number {
+  const enforceMin = options.enforceMinimumDelay ?? true;
+  return enforceMin ? Math.max(delayMs, MIN_AUTO_SAVE_DEBOUNCE_MS) : delayMs;
+}
+
 /**
  * Creates a debounced wrapper for auto-save or live preview callbacks.
  * Enforces at least 300ms delay by default to prevent disk writes on every keystroke.
@@ -22,11 +27,16 @@ export function createDebouncedTask<TArgs extends readonly unknown[]>(
   delayMs: number = DEFAULT_AUTO_SAVE_DEBOUNCE_MS,
   options: DebounceOptions = {},
 ): DebouncedTask<TArgs> {
-  const enforceMin = options.enforceMinimumDelay ?? true;
-  const effectiveDelay = enforceMin ? Math.max(delayMs, MIN_AUTO_SAVE_DEBOUNCE_MS) : delayMs;
-
+  const effectiveDelay = resolveEffectiveDelay(delayMs, options);
   let timerId: ReturnType<typeof setTimeout> | null = null;
   let lastArgs: TArgs | null = null;
+
+  const clearPendingTimer = (): void => {
+    if (timerId !== null) {
+      clearTimeout(timerId);
+      timerId = null;
+    }
+  };
 
   const invokeLatest = (): void => {
     if (lastArgs === null) {
@@ -39,30 +49,20 @@ export function createDebouncedTask<TArgs extends readonly unknown[]>(
   };
 
   const cancel = (): void => {
-    if (timerId !== null) {
-      clearTimeout(timerId);
-      timerId = null;
-    }
+    clearPendingTimer();
     lastArgs = null;
   };
 
   const flush = (): void => {
-    if (timerId !== null) {
-      clearTimeout(timerId);
-      timerId = null;
-    }
+    clearPendingTimer();
     invokeLatest();
   };
 
   const call = (...args: TArgs): void => {
     lastArgs = args;
-    if (timerId !== null) {
-      clearTimeout(timerId);
-    }
+    clearPendingTimer();
     timerId = setTimeout(invokeLatest, effectiveDelay);
   };
 
-  const pending = (): boolean => timerId !== null;
-
-  return { delayMs: effectiveDelay, call, cancel, flush, pending };
+  return { delayMs: effectiveDelay, call, cancel, flush, pending: () => timerId !== null };
 }
