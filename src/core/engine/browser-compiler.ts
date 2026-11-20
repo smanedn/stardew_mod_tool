@@ -1,4 +1,5 @@
 import type {
+  AnimalEditEntry,
   ContentJsonDocument,
   ContentPatch,
   CropEditEntry,
@@ -12,6 +13,7 @@ import type {
   RetextureEditEntry,
   SdvProjectFile,
   ShopEditEntry,
+  WeaponEditEntry,
 } from '../../data/models/index.js';
 import { SecurityError } from '../security/security-error.js';
 import { validateContentJson } from '../validators/content-patcher-validator.js';
@@ -272,6 +274,80 @@ function compileEventPatch(edit: EventEditEntry): ContentPatch {
   };
 }
 
+function compileAnimalPatch(edit: AnimalEditEntry): ContentPatch {
+  return {
+    Action: 'EditData',
+    LogName: `Add Animal: ${edit.displayName}`,
+    Target: 'Data/FarmAnimals',
+    Entries: {
+      [edit.animalId]: {
+        DisplayName: edit.displayName,
+        House: edit.house,
+        PurchasePrice: edit.purchasePrice,
+        DaysToMature: edit.daysToMature,
+        ProduceItemIds: [{ Id: 'Default', ItemId: `(O)${edit.produceItemId}` }],
+      },
+    },
+  };
+}
+
+const WEAPON_TYPE_CODE: Readonly<Record<WeaponEditEntry['weaponType'], number>> = {
+  Sword: 3,
+  Dagger: 1,
+  Club: 2,
+};
+
+function compileWeaponPatch(edit: WeaponEditEntry): ContentPatch {
+  return {
+    Action: 'EditData',
+    LogName: `Add Weapon: ${edit.displayName}`,
+    Target: 'Data/Weapons',
+    Entries: {
+      [edit.weaponId]: {
+        Name: edit.weaponId,
+        DisplayName: edit.displayName,
+        Description: edit.description,
+        MinDamage: edit.minDamage,
+        MaxDamage: edit.maxDamage,
+        CritChance: edit.critChance,
+        Speed: edit.speed,
+        Defense: edit.defense,
+        Type: WEAPON_TYPE_CODE[edit.weaponType],
+      },
+    },
+  };
+}
+
+function compileSingleEdit(
+  edit: SdvProjectFile['edits'][number],
+  assetsById: ReadonlyMap<string, LinkedAssetEntry>,
+): readonly ContentPatch[] {
+  switch (edit.kind) {
+    case 'object': {
+      const recipe = compileObjectRecipePatch(edit);
+      return recipe !== null ? [compileObjectPatch(edit), recipe] : [compileObjectPatch(edit)];
+    }
+    case 'crop':
+      return [compileCropPatch(edit)];
+    case 'retexture':
+      return [compileRetexturePatch(edit, assetsById)];
+    case 'dialogue':
+      return [compileDialoguePatch(edit)];
+    case 'giftTaste':
+      return [compileGiftTastePatch(edit)];
+    case 'shop':
+      return [compileShopPatch(edit)];
+    case 'mail':
+      return [compileMailPatch(edit)];
+    case 'event':
+      return [compileEventPatch(edit)];
+    case 'animal':
+      return [compileAnimalPatch(edit)];
+    case 'weapon':
+      return [compileWeaponPatch(edit)];
+  }
+}
+
 /**
  * Compiles .sdvproj edits into a validated Content Patcher 2.0+ content.json document.
  */
@@ -280,27 +356,7 @@ export function compileProjectToContentJson(project: SdvProjectFile): ContentJso
   const changes: ContentPatch[] = [];
 
   for (const edit of project.edits) {
-    if (edit.kind === 'object') {
-      changes.push(compileObjectPatch(edit));
-      const recipePatch = compileObjectRecipePatch(edit);
-      if (recipePatch !== null) {
-        changes.push(recipePatch);
-      }
-    } else if (edit.kind === 'crop') {
-      changes.push(compileCropPatch(edit));
-    } else if (edit.kind === 'retexture') {
-      changes.push(compileRetexturePatch(edit, assetsById));
-    } else if (edit.kind === 'dialogue') {
-      changes.push(compileDialoguePatch(edit));
-    } else if (edit.kind === 'giftTaste') {
-      changes.push(compileGiftTastePatch(edit));
-    } else if (edit.kind === 'shop') {
-      changes.push(compileShopPatch(edit));
-    } else if (edit.kind === 'mail') {
-      changes.push(compileMailPatch(edit));
-    } else {
-      changes.push(compileEventPatch(edit));
-    }
+    changes.push(...compileSingleEdit(edit, assetsById));
   }
 
   const hasConfig = project.configOptions !== undefined && project.configOptions.length > 0;

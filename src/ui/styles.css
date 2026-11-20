@@ -770,3 +770,34 @@ body {
   flex-direction: column;
   gap: 0.5rem;
 }
+
+/* v0.5.0 Tooltip Sprite Icon & Floating Toast */
+.sdv-tooltip-header {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.sdv-item-icon {
+  width: 40px;
+  height: 40px;
+  image-rendering: pixelated;
+  border: 2px solid #7c3f18;
+  border-radius: 4px;
+  background: #fff7e6;
+}
+
+.toast-banner {
+  position: fixed;
+  right: 1.5rem;
+  bottom: 1.5rem;
+  background: #15803d;
+  color: #ffffff;
+  font-weight: 700;
+  padding: 0.75rem 1.25rem;
+  border-radius: 10px;
+  border: 2px solid #14532d;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  z-index: 1000;
+  animation: tabFadeIn 0.2s ease;
+}

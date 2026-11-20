@@ -12,6 +12,7 @@ export interface ProjectDashboardProps {
   readonly onOpenRecent: (project: SdvProjectFile) => void;
   readonly onDeleteRecent: (uniqueId: string) => void;
   readonly onImportManifest: (manifestJson: string) => void;
+  readonly onImportProjectBackup: (projectJson: string) => void;
   readonly importError: string | null;
 }
 
@@ -31,6 +32,7 @@ const FRIENDLY_TITLES: Readonly<Record<ProjectTemplateId, string>> = {
 
 function ImportModSection(props: {
   readonly onImport: (json: string) => void;
+  readonly onImportBackup: (json: string) => void;
   readonly error: string | null;
 }): React.JSX.Element {
   const [open, setOpen] = useState(false);
@@ -47,24 +49,40 @@ function ImportModSection(props: {
     });
   };
 
+  const handleBackupChange = (event: React.ChangeEvent<HTMLInputElement>): void => {
+    const file = event.target.files?.[0];
+    if (file === undefined) {
+      return;
+    }
+    void file.text().then((text) => {
+      props.onImportBackup(text);
+    });
+  };
+
   return (
     <section className="dashboard-section">
       <div className="module-toolbar">
         <div>
-          <h3>Already have a mod?</h3>
-          <span className="muted-text">Optional: open an existing mod&apos;s manifest.json</span>
+          <h3>Already have a mod or backup?</h3>
+          <span className="muted-text">
+            Restore a saved .sdvproj.json backup or import an existing manifest.json
+          </span>
         </div>
         <button
           type="button"
           className="secondary-btn"
           onClick={() => { setOpen(!open); }}
         >
-          {open ? 'Hide Import' : 'Import Existing Mod'}
+          {open ? 'Hide Import' : 'Import / Restore'}
         </button>
       </div>
       {open && (
         <>
           <div className="import-controls">
+            <label className="launch-btn">
+              Restore .sdvproj.json
+              <input type="file" accept=".json,.sdvproj" onChange={handleBackupChange} hidden />
+            </label>
             <label className="file-upload-btn">
               Choose manifest.json File
               <input type="file" accept=".json" onChange={handleFileChange} hidden />
@@ -185,7 +203,11 @@ export function ProjectDashboard(props: ProjectDashboardProps): React.JSX.Elemen
         )}
       </section>
 
-      <ImportModSection onImport={props.onImportManifest} error={props.importError} />
+      <ImportModSection
+        onImport={props.onImportManifest}
+        onImportBackup={props.onImportProjectBackup}
+        error={props.importError}
+      />
     </div>
   );
 }

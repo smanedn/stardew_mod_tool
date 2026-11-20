@@ -147,6 +147,35 @@ const EventEditSchema = z
   })
   .strict();
 
+const AnimalEditSchema = z
+  .object({
+    kind: z.literal('animal'),
+    id: z.string().min(1),
+    animalId: z.string().min(1),
+    displayName: z.string().min(1),
+    house: z.enum(['Coop', 'Barn']),
+    purchasePrice: z.number().int().min(0),
+    daysToMature: z.number().int().min(1).max(30),
+    produceItemId: z.string().min(1),
+  })
+  .strict();
+
+const WeaponEditSchema = z
+  .object({
+    kind: z.literal('weapon'),
+    id: z.string().min(1),
+    weaponId: z.string().min(1),
+    displayName: z.string().min(1),
+    description: z.string(),
+    weaponType: z.enum(['Sword', 'Dagger', 'Club']),
+    minDamage: z.number().int().min(1),
+    maxDamage: z.number().int().min(1),
+    critChance: z.number().min(0).max(1),
+    speed: z.number().int().min(-10).max(10),
+    defense: z.number().int().min(0).max(20),
+  })
+  .strict();
+
 const ProjectConfigOptionSchema = z
   .object({
     id: z.string().min(1),
@@ -179,6 +208,8 @@ export const SdvProjectSchema: z.ZodType<SdvProjectFile> = z
         ShopEditSchema,
         MailEditSchema,
         EventEditSchema,
+        AnimalEditSchema,
+        WeaponEditSchema,
       ]),
     ),
     configOptions: z.array(ProjectConfigOptionSchema).optional(),

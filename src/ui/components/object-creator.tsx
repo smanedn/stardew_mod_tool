@@ -2,11 +2,16 @@ import {
   computeEnergyHealthFromEdibility,
   formatObjectCategoryLabel,
 } from '../../core/engine/ui-simulator.js';
-import type { ObjectEditEntry, ObjectRecipeConfig } from '../../data/models/index.js';
+import type {
+  LinkedAssetEntry,
+  ObjectEditEntry,
+  ObjectRecipeConfig,
+} from '../../data/models/index.js';
 
 export interface ObjectCreatorProps {
   readonly uniqueId: string;
   readonly objects: readonly ObjectEditEntry[];
+  readonly assets?: readonly LinkedAssetEntry[];
   readonly showAdvanced?: boolean;
   readonly onAddObject: (entry: ObjectEditEntry) => void;
   readonly onUpdateObject: (entry: ObjectEditEntry) => void;
@@ -81,6 +86,7 @@ function RecipeSection(props: {
 
 function ObjectCard(props: {
   readonly entry: ObjectEditEntry;
+  readonly assets: readonly LinkedAssetEntry[];
   readonly showAdvanced: boolean;
   readonly onUpdate: (entry: ObjectEditEntry) => void;
   readonly onRemove: (id: string) => void;
@@ -219,6 +225,25 @@ function ObjectCard(props: {
         </div>
       )}
       <RecipeSection recipe={entry.recipe} onChange={(recipe) => { patch({ recipe }); }} />
+      {props.assets.length > 0 && (
+        <label className="form-field">
+          <span>Item Sprite (from Sprites or Draw Sprite)</span>
+          <select
+            value={entry.assetId ?? ''}
+            onChange={(e) => {
+              const val = e.target.value;
+              patch({ assetId: val === '' ? undefined : val });
+            }}
+          >
+            <option value="">Default Icon</option>
+            {props.assets.map((asset) => (
+              <option key={asset.id} value={asset.id}>
+                {asset.relativePath}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
     </div>
   );
 }
@@ -240,6 +265,9 @@ export function ObjectCreator(props: ObjectCreatorProps): React.JSX.Element {
   };
 
   const previewItem = props.objects[0];
+  const previewAsset = previewItem?.assetId
+    ? props.assets?.find((a) => a.id === previewItem.assetId)
+    : undefined;
   const restore = previewItem
     ? computeEnergyHealthFromEdibility(previewItem.edibility)
     : null;
@@ -262,6 +290,7 @@ export function ObjectCreator(props: ObjectCreatorProps): React.JSX.Element {
             <ObjectCard
               key={entry.id}
               entry={entry}
+              assets={props.assets ?? []}
               showAdvanced={showAdvanced}
               onUpdate={props.onUpdateObject}
               onRemove={props.onRemoveObject}
@@ -275,9 +304,20 @@ export function ObjectCreator(props: ObjectCreatorProps): React.JSX.Element {
         {previewItem !== undefined && restore !== null ? (
           <>
             <div className="sdv-tooltip-box">
-              <div className="sdv-tooltip-title">{previewItem.displayName || 'Unnamed'}</div>
-              <div className="sdv-tooltip-category">
-                {formatObjectCategoryLabel(previewItem.category)}
+              <div className="sdv-tooltip-header">
+                {previewAsset?.dataBase64 !== undefined && (
+                  <img
+                    src={`data:image/png;base64,${previewAsset.dataBase64}`}
+                    alt={previewItem.displayName}
+                    className="sdv-item-icon"
+                  />
+                )}
+                <div>
+                  <div className="sdv-tooltip-title">{previewItem.displayName || 'Unnamed'}</div>
+                  <div className="sdv-tooltip-category">
+                    {formatObjectCategoryLabel(previewItem.category)}
+                  </div>
+                </div>
               </div>
               <hr className="sdv-divider" />
               <p className="sdv-tooltip-desc">{previewItem.description || 'No description.'}</p>

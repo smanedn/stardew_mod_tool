@@ -1,3 +1,4 @@
+export * from './animal-weapon-editor.js';
 export * from './code-inspector.js';
 export * from './config-editor.js';
 export * from './crop-wizard.js';

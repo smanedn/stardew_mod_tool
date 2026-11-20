@@ -121,6 +121,35 @@ export interface EventEditEntry {
   readonly minHearts: number;
 }
 
+export type AnimalHouseType = 'Coop' | 'Barn';
+
+export interface AnimalEditEntry {
+  readonly kind: 'animal';
+  readonly id: string;
+  readonly animalId: string;
+  readonly displayName: string;
+  readonly house: AnimalHouseType;
+  readonly purchasePrice: number;
+  readonly daysToMature: number;
+  readonly produceItemId: string;
+}
+
+export type WeaponTypeId = 'Sword' | 'Dagger' | 'Club';
+
+export interface WeaponEditEntry {
+  readonly kind: 'weapon';
+  readonly id: string;
+  readonly weaponId: string;
+  readonly displayName: string;
+  readonly description: string;
+  readonly weaponType: WeaponTypeId;
+  readonly minDamage: number;
+  readonly maxDamage: number;
+  readonly critChance: number;
+  readonly speed: number;
+  readonly defense: number;
+}
+
 export type SdvProjectEdit =
   | ObjectEditEntry
   | CropEditEntry
@@ -129,7 +158,9 @@ export type SdvProjectEdit =
   | GiftTasteEditEntry
   | ShopEditEntry
   | MailEditEntry
-  | EventEditEntry;
+  | EventEditEntry
+  | AnimalEditEntry
+  | WeaponEditEntry;
 
 export interface ProjectConfigOption {
   readonly id: string;

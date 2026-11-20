@@ -15,7 +15,9 @@ import {
   redoCommand,
   undoCommand,
 } from '../core/engine/undo-redo.js';
+import { parseProjectJson } from '../core/parsers/project-file.js';
 import type {
+  AnimalEditEntry,
   CropEditEntry,
   DialogueEditEntry,
   EventEditEntry,
@@ -30,8 +32,10 @@ import type {
   SdvProjectFile,
   SdvProjectMetadata,
   ShopEditEntry,
+  WeaponEditEntry,
 } from '../data/models/index.js';
 import {
+  AnimalWeaponEditor,
   CodeInspector,
   ConfigEditor,
   CropWizard,
@@ -51,6 +55,7 @@ import {
   type TutorialTargetTab,
 } from './components/index.js';
 import './styles.css';
+import { playCozyChime } from './utils/cozy-sound.js';
 
 type EditorTab =
   | 'manifest'
@@ -61,6 +66,7 @@ type EditorTab =
   | 'gifts'
   | 'shops'
   | 'events'
+  | 'animals'
   | 'config'
   | 'pixel'
   | 'i18n'
@@ -149,7 +155,18 @@ export function App(): React.JSX.Element {
   const [showOnboarding, setShowOnboarding] = useState<boolean>(loadInitialOnboarding);
   const [theme, setTheme] = useState<'light' | 'dark'>(loadInitialTheme);
   const [season, setSeason] = useState<ValleySeason>(loadInitialSeason);
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
+
+  const showToast = useCallback(
+    (msg: string, soundKind: 'pop' | 'success' = 'success'): void => {
+      setToastMessage(msg);
+      playCozyChime(soundEnabled, soundKind);
+      setTimeout(() => { setToastMessage(null); }, 2800);
+    },
+    [soundEnabled],
+  );
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -290,8 +307,20 @@ export function App(): React.JSX.Element {
     try {
       openAndRememberProject(importManifestJsonToProject(manifestJson));
       setActiveTab('manifest');
+      showToast('Imported manifest.json!');
     } catch (error: unknown) {
       setImportError(error instanceof Error ? error.message : 'Failed to parse manifest.json.');
+    }
+  };
+
+  const handleImportProjectBackup = (projectJson: string): void => {
+    try {
+      const restored = parseProjectJson(projectJson);
+      openAndRememberProject(restored);
+      setActiveTab('manifest');
+      showToast(`Restored "${restored.metadata.name}"!`);
+    } catch (error: unknown) {
+      setImportError(error instanceof Error ? error.message : 'Invalid .sdvproj.json backup.');
     }
   };
 
@@ -484,6 +513,10 @@ export function App(): React.JSX.Element {
     activeProject?.edits.filter((e): e is MailEditEntry => e.kind === 'mail') ?? [];
   const eventEdits: readonly EventEditEntry[] =
     activeProject?.edits.filter((e): e is EventEditEntry => e.kind === 'event') ?? [];
+  const animalEdits: readonly AnimalEditEntry[] =
+    activeProject?.edits.filter((e): e is AnimalEditEntry => e.kind === 'animal') ?? [];
+  const weaponEdits: readonly WeaponEditEntry[] =
+    activeProject?.edits.filter((e): e is WeaponEditEntry => e.kind === 'weapon') ?? [];
 
   const handleSavePixelSprite = (newAsset: LinkedAssetEntry): void => {
     if (activeProject === null) {
@@ -503,10 +536,17 @@ export function App(): React.JSX.Element {
           <img src="/logo.png" alt="SVMC Logo" className="hero-logo" />
           <div>
             <h1>Stardew Valley Mod Creator - by Smane</h1>
-            <p className="app-subtitle">Cozy Content Patcher Studio • v0.4.0</p>
+            <p className="app-subtitle">Cozy Content Patcher Studio • v0.5.0</p>
           </div>
         </div>
         <div className="inline-row">
+          <button
+            type="button"
+            className="secondary-btn"
+            onClick={() => { setSoundEnabled(!soundEnabled); }}
+          >
+            {soundEnabled ? '🔊 Sound' : '🔇 Muted'}
+          </button>
           <select
             className="season-select"
             aria-label="Valley Season Theme"
@@ -611,6 +651,7 @@ export function App(): React.JSX.Element {
           onOpenRecent={openAndRememberProject}
           onDeleteRecent={handleDeleteProject}
           onImportManifest={handleImportManifest}
+          onImportProjectBackup={handleImportProjectBackup}
           importError={importError}
         />
       ) : (
@@ -641,6 +682,7 @@ export function App(): React.JSX.Element {
                   'gifts',
                   'shops',
                   'events',
+                  'animals',
                   'retexture',
                   'pixel',
                   'preview',
@@ -656,6 +698,7 @@ export function App(): React.JSX.Element {
                   'gifts',
                   'shops',
                   'events',
+                  'animals',
                   'retexture',
                   'pixel',
                   'preview',
@@ -665,7 +708,10 @@ export function App(): React.JSX.Element {
                 key={tab}
                 type="button"
                 className={activeTab === tab ? 'tab-btn active' : 'tab-btn'}
-                onClick={() => { setActiveTab(tab); }}
+                onClick={() => {
+                  setActiveTab(tab);
+                  playCozyChime(soundEnabled, 'pop');
+                }}
               >
                 {tab === 'manifest'
                   ? '1. Mod Info'
@@ -681,17 +727,19 @@ export function App(): React.JSX.Element {
                             ? '6. Shops & Mail'
                             : tab === 'events'
                               ? '7. Cutscenes'
-                              : tab === 'retexture'
-                                ? '8. Sprites'
-                                : tab === 'pixel'
-                                  ? '9. Draw Sprite'
-                                  : tab === 'preview'
-                                    ? '10. Preview & Export'
-                                    : tab === 'config'
-                                      ? 'Config (GMCM)'
-                                      : tab === 'i18n'
-                                        ? 'Translations'
-                                        : 'Test in Game'}
+                              : tab === 'animals'
+                                ? '8. Animals & Weapons'
+                                : tab === 'retexture'
+                                  ? '9. Sprites'
+                                  : tab === 'pixel'
+                                    ? '10. Draw Sprite'
+                                    : tab === 'preview'
+                                      ? '11. Preview & Export'
+                                      : tab === 'config'
+                                        ? 'Config (GMCM)'
+                                        : tab === 'i18n'
+                                          ? 'Translations'
+                                          : 'Test in Game'}
               </button>
             ))}
           </nav>
@@ -709,6 +757,7 @@ export function App(): React.JSX.Element {
                 <ObjectCreator
                   uniqueId={activeProject.metadata.uniqueId}
                   objects={objectEdits}
+                  assets={activeProject.assets}
                   showAdvanced={advancedMode}
                   onAddObject={(entry) => { updateProjectEdits([...activeProject.edits, entry]); }}
                   onUpdateObject={(entry) => {
@@ -823,6 +872,32 @@ export function App(): React.JSX.Element {
                   }}
                 />
               )}
+              {activeTab === 'animals' && (
+                <AnimalWeaponEditor
+                  uniqueId={activeProject.metadata.uniqueId}
+                  animals={animalEdits}
+                  weapons={weaponEdits}
+                  objects={objectEdits}
+                  onAddAnimal={(entry) => { updateProjectEdits([...activeProject.edits, entry]); }}
+                  onUpdateAnimal={(entry) => {
+                    updateProjectEdits(
+                      activeProject.edits.map((item) => (item.id === entry.id ? entry : item)),
+                    );
+                  }}
+                  onRemoveAnimal={(id) => {
+                    updateProjectEdits(activeProject.edits.filter((item) => item.id !== id));
+                  }}
+                  onAddWeapon={(entry) => { updateProjectEdits([...activeProject.edits, entry]); }}
+                  onUpdateWeapon={(entry) => {
+                    updateProjectEdits(
+                      activeProject.edits.map((item) => (item.id === entry.id ? entry : item)),
+                    );
+                  }}
+                  onRemoveWeapon={(id) => {
+                    updateProjectEdits(activeProject.edits.filter((item) => item.id !== id));
+                  }}
+                />
+              )}
               {activeTab === 'config' && (
                 <ConfigEditor
                   options={activeProject.configOptions ?? []}
@@ -841,6 +916,7 @@ export function App(): React.JSX.Element {
                   project={activeProject}
                   objects={objectEdits}
                   dialogues={dialogueEdits}
+                  onNotifyToast={(msg) => { showToast(msg, 'success'); }}
                 />
               )}
               {activeTab === 'launch' && <QuickLaunchPanel project={activeProject} />}
@@ -849,6 +925,7 @@ export function App(): React.JSX.Element {
           </div>
         </>
       )}
+      {toastMessage !== null && <div className="toast-banner">{toastMessage}</div>}
     </main>
   );
 }

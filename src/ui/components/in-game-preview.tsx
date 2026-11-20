@@ -20,6 +20,7 @@ import {
 } from '../../core/engine/ui-simulator.js';
 import type {
   DialogueEditEntry,
+  LinkedAssetEntry,
   ObjectEditEntry,
   SdvProjectFile,
 } from '../../data/models/index.js';
@@ -28,6 +29,7 @@ export interface InGamePreviewProps {
   readonly project?: SdvProjectFile;
   readonly objects: readonly ObjectEditEntry[];
   readonly dialogues: readonly DialogueEditEntry[];
+  readonly onNotifyToast?: (message: string) => void;
 }
 
 function downloadBlob(filename: string, data: BlobPart, mimeType: string): void {
@@ -51,14 +53,26 @@ const MOOD_EMOJI: Readonly<Record<PortraitMood, string>> = {
 
 function InventoryTooltipSimulator(props: {
   readonly item: ObjectEditEntry;
+  readonly asset?: LinkedAssetEntry;
 }): React.JSX.Element {
   const { item } = props;
   const restore = computeEnergyHealthFromEdibility(item.edibility);
 
   return (
     <div className="sdv-tooltip-box">
-      <div className="sdv-tooltip-title">{item.displayName || 'Unnamed Item'}</div>
-      <div className="sdv-tooltip-category">{formatObjectCategoryLabel(item.category)}</div>
+      <div className="sdv-tooltip-header">
+        {props.asset?.dataBase64 !== undefined && (
+          <img
+            src={`data:image/png;base64,${props.asset.dataBase64}`}
+            alt={item.displayName}
+            className="sdv-item-icon"
+          />
+        )}
+        <div>
+          <div className="sdv-tooltip-title">{item.displayName || 'Unnamed Item'}</div>
+          <div className="sdv-tooltip-category">{formatObjectCategoryLabel(item.category)}</div>
+        </div>
+      </div>
       <hr className="sdv-divider" />
       <p className="sdv-tooltip-desc">{item.description || 'No description provided.'}</p>
       {restore.edible && (
@@ -118,6 +132,7 @@ export function InGamePreview(props: InGamePreviewProps): React.JSX.Element {
     const contentText = serializeCleanJson(compileProjectToContentJson(props.project));
     downloadBlob('manifest.json', manifestText, 'application/json');
     downloadBlob('content.json', contentText, 'application/json');
+    props.onNotifyToast?.('Downloaded manifest.json & content.json!');
   };
 
   const handleDownloadZip = (): void => {
@@ -128,6 +143,7 @@ export function InGamePreview(props: InGamePreviewProps): React.JSX.Element {
     const copy = new Uint8Array(bytes.length);
     copy.set(bytes);
     downloadBlob(zipName, copy, 'application/zip');
+    props.onNotifyToast?.(`Downloaded ${zipName}!`);
   };
 
   const handleDownloadProjectBackup = (): void => {
@@ -139,6 +155,7 @@ export function InGamePreview(props: InGamePreviewProps): React.JSX.Element {
       `${JSON.stringify(props.project, null, 2)}\n`,
       'application/json',
     );
+    props.onNotifyToast?.('Saved .sdvproj.json backup!');
   };
 
   const handleDesktopExport = (): void => {
@@ -241,7 +258,14 @@ export function InGamePreview(props: InGamePreviewProps): React.JSX.Element {
           )}
         </div>
         {activeObj !== undefined ? (
-          <InventoryTooltipSimulator item={activeObj} />
+          <InventoryTooltipSimulator
+            item={activeObj}
+            asset={
+              activeObj.assetId !== undefined
+                ? props.project?.assets.find((a) => a.id === activeObj.assetId)
+                : undefined
+            }
+          />
         ) : (
           <p className="muted-text">
             Create a custom object in the Objects tab to preview it here.
