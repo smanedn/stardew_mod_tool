@@ -20,7 +20,7 @@ export interface VanillaDatabase {
   readonly locations: GameDataIndex<VanillaLocationEntry>;
 }
 
-const VanillaDatabaseDumpSchema: z.ZodType<VanillaDatabaseDump> = z
+export const VanillaDatabaseDumpSchema: z.ZodType<VanillaDatabaseDump> = z
   .object({
     gameVersion: z.string().min(1),
     objects: z.array(

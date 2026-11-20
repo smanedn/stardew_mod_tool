@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   compileProjectToContentJson,
   compileProjectToManifest,
@@ -32,7 +32,10 @@ export function CodeInspector({ project }: CodeInspectorProps): React.JSX.Elemen
   const [selectedFile, setSelectedFile] = useState<InspectedFile>('content.json');
   const [copied, setCopied] = useState<boolean>(false);
 
-  const result = tryCompileFile(project, selectedFile);
+  const result = useMemo(
+    () => tryCompileFile(project, selectedFile),
+    [project, selectedFile],
+  );
 
   const handleCopy = (): void => {
     if (result.text.length === 0) {
