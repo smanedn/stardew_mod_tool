@@ -10,6 +10,7 @@ import type {
   LinkedAssetEntry,
   ObjectEditEntry,
   ProjectConfigOption,
+  ProjectTranslations,
   RetextureEditEntry,
   SdvProjectEdit,
   SdvProjectFile,
@@ -19,6 +20,7 @@ import {
   ConfigEditor,
   CropWizard,
   DialogueEditor,
+  I18nEditor,
   ManifestEditor,
   ObjectCreator,
   PixelEditor,
@@ -27,7 +29,15 @@ import {
 } from './components/index.js';
 import './styles.css';
 
-type EditorTab = 'manifest' | 'objects' | 'crops' | 'retexture' | 'dialogue' | 'config' | 'pixel';
+type EditorTab =
+  | 'manifest'
+  | 'objects'
+  | 'crops'
+  | 'retexture'
+  | 'dialogue'
+  | 'config'
+  | 'pixel'
+  | 'i18n';
 
 const RECENT_STORAGE_KEY = 'sdv_mod_creator_recent_projects';
 
@@ -127,6 +137,16 @@ export function App(): React.JSX.Element {
     }
   };
 
+  const handleTranslationsChange = (translations: ProjectTranslations): void => {
+    if (activeProject !== null) {
+      openAndRememberProject({
+        ...activeProject,
+        updatedAt: new Date().toISOString(),
+        translations,
+      });
+    }
+  };
+
   const handleAddRetexture = (entry: RetextureEditEntry, newAsset?: LinkedAssetEntry): void => {
     if (activeProject === null) {
       return;
@@ -169,7 +189,16 @@ export function App(): React.JSX.Element {
         <>
           <nav className="workspace-tabs">
             {(
-              ['manifest', 'objects', 'crops', 'retexture', 'dialogue', 'config', 'pixel'] as const
+              [
+                'manifest',
+                'objects',
+                'crops',
+                'retexture',
+                'dialogue',
+                'config',
+                'pixel',
+                'i18n',
+              ] as const
             ).map((tab) => (
               <button
                 key={tab}
@@ -189,7 +218,9 @@ export function App(): React.JSX.Element {
                           ? 'Dialogue'
                           : tab === 'config'
                             ? 'Config (GMCM)'
-                            : 'Pixel Editor'}
+                            : tab === 'pixel'
+                              ? 'Pixel Editor'
+                              : 'i18n'}
               </button>
             ))}
           </nav>
@@ -259,6 +290,12 @@ export function App(): React.JSX.Element {
             />
           )}
           {activeTab === 'pixel' && <PixelEditor />}
+          {activeTab === 'i18n' && (
+            <I18nEditor
+              project={activeProject}
+              onChangeTranslations={handleTranslationsChange}
+            />
+          )}
         </>
       )}
     </main>

@@ -123,6 +123,9 @@ export const SdvProjectSchema: z.ZodType<SdvProjectFile> = z
       ]),
     ),
     configOptions: z.array(ProjectConfigOptionSchema).optional(),
+    translations: z
+      .record(z.string().min(1), z.record(z.string().min(1), z.string()))
+      .optional(),
   })
   .strict();
 

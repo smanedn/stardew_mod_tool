@@ -1,6 +1,7 @@
 export * from './asset-manager.js';
 export * from './config-schema-builder.js';
 export * from './dialogue-tokens.js';
+export * from './i18n-generator.js';
 export * from './id-version-generator.js';
 export * from './mod-compiler.js';
 export * from './pixel-grid.js';

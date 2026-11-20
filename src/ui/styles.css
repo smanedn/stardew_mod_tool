@@ -315,3 +315,26 @@ body {
   cursor: crosshair;
   image-rendering: pixelated;
 }
+
+.i18n-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.i18n-table th,
+.i18n-table td {
+  border: 1px solid #e5cfa8;
+  padding: 0.45rem 0.6rem;
+  text-align: left;
+}
+
+.i18n-table th {
+  background: #fdf6e4;
+  color: #5a381e;
+}
+
+.i18n-key {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.8rem;
+}

@@ -86,6 +86,8 @@ export interface ProjectConfigOption {
   readonly section?: string;
 }
 
+export type ProjectTranslations = Readonly<Record<string, Readonly<Record<string, string>>>>;
+
 /**
  * Human-readable .sdvproj project file structure storing work state prior to SMAPI compilation.
  */
@@ -96,4 +98,5 @@ export interface SdvProjectFile {
   readonly assets: readonly LinkedAssetEntry[];
   readonly edits: readonly SdvProjectEdit[];
   readonly configOptions?: readonly ProjectConfigOption[];
+  readonly translations?: ProjectTranslations;
 }
