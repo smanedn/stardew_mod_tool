@@ -8,6 +8,7 @@ export * from './mod-compiler.js';
 export * from './mod-exporter.js';
 export * from './pixel-grid.js';
 export * from './project-templates.js';
+export * from './recovery-manager.js';
 export * from './smapi-launcher.js';
 export * from './smapi-log-parser.js';
 export * from './sprite-patcher.js';

@@ -55,6 +55,8 @@ type EditorTab =
   | 'launch';
 
 const RECENT_STORAGE_KEY = 'sdv_mod_creator_recent_projects';
+const RECOVERY_STORAGE_KEY = 'sdv_mod_creator_recovery_snapshot';
+const BROWSER_AUTO_RECOVERY_MS = 120_000;
 
 function isSdvProjectFile(value: unknown): value is SdvProjectFile {
   return (
@@ -172,6 +174,22 @@ export function App(): React.JSX.Element {
       window.removeEventListener('keydown', onKeyDown);
     };
   }, [activeProject, handleRedo, handleUndo]);
+
+  useEffect(() => {
+    if (activeProject === null) {
+      return;
+    }
+    const timerId = setInterval(() => {
+      try {
+        localStorage.setItem(RECOVERY_STORAGE_KEY, JSON.stringify(activeProject));
+      } catch {
+        // Ignore storage quota errors during silent recovery save.
+      }
+    }, BROWSER_AUTO_RECOVERY_MS);
+    return (): void => {
+      clearInterval(timerId);
+    };
+  }, [activeProject]);
 
   const handleCreateTemplate = (templateId: ProjectTemplateId): void => {
     const label = `${templateId.charAt(0).toUpperCase()}${templateId.slice(1)}`;
