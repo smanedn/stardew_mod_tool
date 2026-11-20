@@ -4,6 +4,7 @@ import {
   compileProjectToManifest,
   serializeCleanJson,
 } from '../../core/engine/browser-compiler.js';
+import { createBrowserModZipBytes } from '../../core/engine/browser-zip.js';
 import {
   type PortraitMood,
   computeEnergyHealthFromEdibility,
@@ -22,8 +23,8 @@ export interface InGamePreviewProps {
   readonly dialogues: readonly DialogueEditEntry[];
 }
 
-function downloadJsonFile(filename: string, text: string): void {
-  const blob = new Blob([text], { type: 'application/json' });
+function downloadBlob(filename: string, data: BlobPart, mimeType: string): void {
+  const blob = new Blob([data], { type: mimeType });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
@@ -104,8 +105,29 @@ export function InGamePreview(props: InGamePreviewProps): React.JSX.Element {
     }
     const manifestText = serializeCleanJson(compileProjectToManifest(props.project));
     const contentText = serializeCleanJson(compileProjectToContentJson(props.project));
-    downloadJsonFile('manifest.json', manifestText);
-    downloadJsonFile('content.json', contentText);
+    downloadBlob('manifest.json', manifestText, 'application/json');
+    downloadBlob('content.json', contentText, 'application/json');
+  };
+
+  const handleDownloadZip = (): void => {
+    if (props.project === undefined) {
+      return;
+    }
+    const { zipName, bytes } = createBrowserModZipBytes(props.project);
+    const copy = new Uint8Array(bytes.length);
+    copy.set(bytes);
+    downloadBlob(zipName, copy, 'application/zip');
+  };
+
+  const handleDownloadProjectBackup = (): void => {
+    if (props.project === undefined) {
+      return;
+    }
+    downloadBlob(
+      `${props.project.metadata.uniqueId}.sdvproj.json`,
+      `${JSON.stringify(props.project, null, 2)}\n`,
+      'application/json',
+    );
   };
 
   return (
@@ -116,13 +138,25 @@ export function InGamePreview(props: InGamePreviewProps): React.JSX.Element {
             <div>
               <h3>Ready to Play Your Mod?</h3>
               <span className="muted-text">
-                1. Click Download • 2. Put both files in a folder inside Stardew Valley/Mods/ • 3.
-                Launch SMAPI!
+                Download the ready-to-install .zip and drop the folder into Stardew Valley/Mods/ (or
+                import into SVMM)!
               </span>
             </div>
-            <button type="button" className="launch-btn" onClick={handleDownloadMod}>
-              Download My Mod Files
-            </button>
+            <div className="inline-row">
+              <button type="button" className="launch-btn" onClick={handleDownloadZip}>
+                Download Ready .zip
+              </button>
+              <button type="button" className="secondary-btn" onClick={handleDownloadMod}>
+                Download JSON Files
+              </button>
+              <button
+                type="button"
+                className="secondary-btn"
+                onClick={handleDownloadProjectBackup}
+              >
+                Save .sdvproj
+              </button>
+            </div>
           </div>
         </div>
       )}

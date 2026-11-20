@@ -1,5 +1,6 @@
 export * from './asset-manager.js';
 export * from './browser-compiler.js';
+export * from './browser-zip.js';
 export * from './config-schema-builder.js';
 export * from './dialogue-tokens.js';
 export * from './i18n-generator.js';

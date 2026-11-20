@@ -42,6 +42,16 @@ const ObjectRecipeSchema = z
   })
   .strict();
 
+const ObjectBuffSchema = z
+  .object({
+    speed: z.number().int().min(-5).max(10).optional(),
+    luck: z.number().int().min(-5).max(10).optional(),
+    farming: z.number().int().min(0).max(10).optional(),
+    mining: z.number().int().min(0).max(10).optional(),
+    durationSeconds: z.number().int().min(10).max(1200).optional(),
+  })
+  .strict();
+
 const ObjectEditSchema = z
   .object({
     kind: z.literal('object'),
@@ -54,6 +64,7 @@ const ObjectEditSchema = z
     category: z.number().int(),
     assetId: z.string().min(1).optional(),
     recipe: ObjectRecipeSchema.optional(),
+    buff: ObjectBuffSchema.optional(),
   })
   .strict();
 

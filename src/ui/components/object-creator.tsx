@@ -178,6 +178,46 @@ function ObjectCard(props: {
           </label>
         )}
       </div>
+      {isEdible && (
+        <div className="inline-row">
+          <label className="form-field">
+            <span>Speed Buff</span>
+            <input
+              type="number"
+              min={0}
+              max={5}
+              value={entry.buff?.speed ?? 0}
+              onChange={(e) => {
+                patch({ buff: { ...entry.buff, speed: Number(e.target.value) || 0 } });
+              }}
+            />
+          </label>
+          <label className="form-field">
+            <span>Luck Buff</span>
+            <input
+              type="number"
+              min={0}
+              max={5}
+              value={entry.buff?.luck ?? 0}
+              onChange={(e) => {
+                patch({ buff: { ...entry.buff, luck: Number(e.target.value) || 0 } });
+              }}
+            />
+          </label>
+          <label className="form-field">
+            <span>Farming Buff</span>
+            <input
+              type="number"
+              min={0}
+              max={5}
+              value={entry.buff?.farming ?? 0}
+              onChange={(e) => {
+                patch({ buff: { ...entry.buff, farming: Number(e.target.value) || 0 } });
+              }}
+            />
+          </label>
+        </div>
+      )}
       <RecipeSection recipe={entry.recipe} onChange={(recipe) => { patch({ recipe }); }} />
     </div>
   );

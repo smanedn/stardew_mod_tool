@@ -83,6 +83,13 @@ function buildAssetLookup(
 }
 
 function compileObjectPatch(edit: ObjectEditEntry): ContentPatch {
+  const hasBuff =
+    edit.buff !== undefined &&
+    ((edit.buff.speed ?? 0) !== 0 ||
+      (edit.buff.luck ?? 0) !== 0 ||
+      (edit.buff.farming ?? 0) > 0 ||
+      (edit.buff.mining ?? 0) > 0);
+
   return {
     Action: 'EditData',
     LogName: `Add Object: ${edit.displayName}`,
@@ -95,6 +102,23 @@ function compileObjectPatch(edit: ObjectEditEntry): ContentPatch {
         Price: edit.price,
         Edibility: edit.edibility,
         Category: edit.category,
+        ...(hasBuff && edit.buff !== undefined
+          ? {
+              Buffs: [
+                {
+                  Duration: edit.buff.durationSeconds ?? 120,
+                  CustomAttributes: {
+                    ...(edit.buff.speed !== undefined ? { Speed: edit.buff.speed } : {}),
+                    ...(edit.buff.luck !== undefined ? { LuckLevel: edit.buff.luck } : {}),
+                    ...(edit.buff.farming !== undefined
+                      ? { FarmingLevel: edit.buff.farming }
+                      : {}),
+                    ...(edit.buff.mining !== undefined ? { MiningLevel: edit.buff.mining } : {}),
+                  },
+                },
+              ],
+            }
+          : {}),
       },
     },
   };

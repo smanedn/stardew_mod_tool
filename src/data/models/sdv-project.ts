@@ -28,6 +28,14 @@ export interface ObjectRecipeConfig {
   readonly ingredients: Readonly<Record<string, number>>;
 }
 
+export interface ObjectBuffConfig {
+  readonly speed?: number;
+  readonly luck?: number;
+  readonly farming?: number;
+  readonly mining?: number;
+  readonly durationSeconds?: number;
+}
+
 export interface ObjectEditEntry {
   readonly kind: 'object';
   readonly id: string;
@@ -39,6 +47,7 @@ export interface ObjectEditEntry {
   readonly category: number;
   readonly assetId?: string;
   readonly recipe?: ObjectRecipeConfig;
+  readonly buff?: ObjectBuffConfig;
 }
 
 export interface CropEditEntry {
