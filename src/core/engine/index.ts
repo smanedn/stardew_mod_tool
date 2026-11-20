@@ -7,3 +7,4 @@ export * from './mod-compiler.js';
 export * from './pixel-grid.js';
 export * from './project-templates.js';
 export * from './sprite-patcher.js';
+export * from './ui-simulator.js';

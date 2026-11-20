@@ -21,6 +21,7 @@ import {
   CropWizard,
   DialogueEditor,
   I18nEditor,
+  InGamePreview,
   ManifestEditor,
   ObjectCreator,
   PixelEditor,
@@ -37,7 +38,8 @@ type EditorTab =
   | 'dialogue'
   | 'config'
   | 'pixel'
-  | 'i18n';
+  | 'i18n'
+  | 'preview';
 
 const RECENT_STORAGE_KEY = 'sdv_mod_creator_recent_projects';
 
@@ -198,6 +200,7 @@ export function App(): React.JSX.Element {
                 'config',
                 'pixel',
                 'i18n',
+                'preview',
               ] as const
             ).map((tab) => (
               <button
@@ -220,7 +223,9 @@ export function App(): React.JSX.Element {
                             ? 'Config (GMCM)'
                             : tab === 'pixel'
                               ? 'Pixel Editor'
-                              : 'i18n'}
+                              : tab === 'i18n'
+                                ? 'i18n'
+                                : 'Live Preview'}
               </button>
             ))}
           </nav>
@@ -295,6 +300,9 @@ export function App(): React.JSX.Element {
               project={activeProject}
               onChangeTranslations={handleTranslationsChange}
             />
+          )}
+          {activeTab === 'preview' && (
+            <InGamePreview objects={objectEdits} dialogues={dialogueEdits} />
           )}
         </>
       )}

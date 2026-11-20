@@ -2,6 +2,7 @@ export * from './config-editor.js';
 export * from './crop-wizard.js';
 export * from './dialogue-editor.js';
 export * from './i18n-editor.js';
+export * from './in-game-preview.js';
 export * from './manifest-editor.js';
 export * from './object-creator.js';
 export * from './pixel-editor.js';
