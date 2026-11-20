@@ -57,7 +57,15 @@ export function getDefaultStorefrontCandidates(): readonly StorefrontCandidate[]
       storefront: 'Steam',
     },
     {
-      directory: path.join(home, '.local', 'share', 'Steam', 'steamapps', 'common', 'Stardew Valley'),
+      directory: path.join(
+        home,
+        '.local',
+        'share',
+        'Steam',
+        'steamapps',
+        'common',
+        'Stardew Valley',
+      ),
       storefront: 'Steam',
     },
     {

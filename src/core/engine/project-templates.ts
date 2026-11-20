@@ -42,32 +42,39 @@ export const PROJECT_TEMPLATES: readonly ProjectTemplateInfo[] = [
   },
 ];
 
-function buildTemplateEdits(templateId: ProjectTemplateId, uniqueId: string): readonly SdvProjectEdit[] {
+function createStarterObjectEdit(uniqueId: string): SdvProjectEdit {
+  return {
+    kind: 'object',
+    id: 'edit-object-1',
+    itemId: `${uniqueId}_CustomItem`,
+    displayName: 'Custom Item',
+    description: 'A brand-new item created with Stardew Mod Creator.',
+    price: 100,
+    edibility: 20,
+    category: -75,
+  };
+}
+
+function createStarterCropEdit(uniqueId: string): SdvProjectEdit {
+  return {
+    kind: 'crop',
+    id: 'edit-crop-1',
+    seedItemId: `${uniqueId}_CustomSeeds`,
+    harvestItemId: `${uniqueId}_CustomCrop`,
+    seasons: ['Spring'],
+    daysInPhase: [1, 2, 2, 2],
+  };
+}
+
+function buildTemplateEdits(
+  templateId: ProjectTemplateId,
+  uniqueId: string,
+): readonly SdvProjectEdit[] {
   switch (templateId) {
     case 'object':
-      return [
-        {
-          kind: 'object',
-          id: 'edit-object-1',
-          itemId: `${uniqueId}_CustomItem`,
-          displayName: 'Custom Item',
-          description: 'A brand-new item created with Stardew Mod Creator.',
-          price: 100,
-          edibility: 20,
-          category: -75,
-        },
-      ];
+      return [createStarterObjectEdit(uniqueId)];
     case 'crop':
-      return [
-        {
-          kind: 'crop',
-          id: 'edit-crop-1',
-          seedItemId: `${uniqueId}_CustomSeeds`,
-          harvestItemId: `${uniqueId}_CustomCrop`,
-          seasons: ['Spring'],
-          daysInPhase: [1, 2, 2, 2],
-        },
-      ];
+      return [createStarterCropEdit(uniqueId)];
     case 'retexture':
       return [
         {

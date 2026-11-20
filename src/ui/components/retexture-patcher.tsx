@@ -38,10 +38,21 @@ function readImageDimensions(file: File): Promise<{ width: number; height: numbe
   });
 }
 
+const DEFAULT_PRESET: VanillaSpritePreset = {
+  id: 'tool-axe',
+  name: 'Axe (Steel)',
+  category: 'Tool',
+  target: 'TileSheets/tools',
+  spriteIndex: 215,
+  tileWidth: 16,
+  tileHeight: 16,
+  sheetColumns: 21,
+};
+
 export function RetexturePatcher(props: RetexturePatcherProps): React.JSX.Element {
   const [categoryFilter, setCategoryFilter] = useState<'All' | SpriteGalleryCategory>('All');
   const [selectedPreset, setSelectedPreset] = useState<VanillaSpritePreset>(
-    VANILLA_SPRITE_GALLERY[0]!,
+    VANILLA_SPRITE_GALLERY[0] ?? DEFAULT_PRESET,
   );
   const [uploadInfo, setUploadInfo] = useState<string | null>(null);
 
@@ -75,9 +86,10 @@ export function RetexturePatcher(props: RetexturePatcherProps): React.JSX.Elemen
         },
         asset,
       );
-      setUploadInfo(
-        `Uploaded ${file.name} (${String(width)}x${String(height)}px) -> ToArea (${String(toArea.X)}, ${String(toArea.Y)}, ${String(toArea.Width)}x${String(toArea.Height)})`,
-      );
+      const dims = `${String(width)}x${String(height)}px`;
+      const pos = `${String(toArea.X)}, ${String(toArea.Y)}`;
+      const size = `${String(toArea.Width)}x${String(toArea.Height)}`;
+      setUploadInfo(`Uploaded ${file.name} (${dims}) -> ToArea (${pos}, ${size})`);
     });
   };
 

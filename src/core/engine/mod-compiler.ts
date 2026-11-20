@@ -28,12 +28,11 @@ function isPlainRecord(value: unknown): value is Readonly<Record<string, unknown
  * Recursively strips null and undefined properties from objects and arrays
  * to produce minimal, clean SMAPI JSON output.
  */
-export function stripNullAndUndefined<T>(value: T): T {
+export function stripNullAndUndefined(value: unknown): unknown {
   if (Array.isArray(value)) {
-    const cleaned = value
+    return value
       .filter((item) => item !== null && item !== undefined)
       .map((item) => stripNullAndUndefined(item));
-    return cleaned as T;
   }
 
   if (isPlainRecord(value)) {
@@ -43,7 +42,7 @@ export function stripNullAndUndefined<T>(value: T): T {
         entries.push([key, stripNullAndUndefined(propValue)]);
       }
     }
-    return Object.fromEntries(entries) as T;
+    return Object.fromEntries(entries);
   }
 
   return value;

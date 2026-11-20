@@ -1,3 +1,4 @@
+import type { z } from 'zod';
 import { generateUniqueId, incrementSemVer } from '../../core/engine/id-version-generator.js';
 import { SemVerSchema, UniqueIdSchema } from '../../core/security/input-schemas.js';
 import type { SdvProjectMetadata } from '../../data/models/index.js';
@@ -7,7 +8,7 @@ export interface ManifestEditorProps {
   readonly onChange: (next: SdvProjectMetadata) => void;
 }
 
-function getValidationError(value: string, schema: typeof UniqueIdSchema): string | null {
+function getValidationError(value: string, schema: z.ZodType<string>): string | null {
   const result = schema.safeParse(value);
   if (result.success) {
     return null;
@@ -115,7 +116,9 @@ export function ManifestEditor({ metadata, onChange }: ManifestEditorProps): Rea
               type="button"
               className="secondary-btn"
               disabled={versionError !== null}
-              onClick={() => { updateField({ version: incrementSemVer(metadata.version, 'patch') }); }}
+              onClick={() => {
+                updateField({ version: incrementSemVer(metadata.version, 'patch') });
+              }}
             >
               +Patch
             </button>
@@ -123,7 +126,9 @@ export function ManifestEditor({ metadata, onChange }: ManifestEditorProps): Rea
               type="button"
               className="secondary-btn"
               disabled={versionError !== null}
-              onClick={() => { updateField({ version: incrementSemVer(metadata.version, 'minor') }); }}
+              onClick={() => {
+                updateField({ version: incrementSemVer(metadata.version, 'minor') });
+              }}
             >
               +Minor
             </button>

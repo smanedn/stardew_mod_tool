@@ -9,6 +9,13 @@ export interface ConfigEditorProps {
   readonly onChange: (next: readonly ProjectConfigOption[]) => void;
 }
 
+function parseOptionType(value: string): ProjectConfigOption['optionType'] {
+  if (value === 'toggle' || value === 'number' || value === 'choice') {
+    return value;
+  }
+  return 'choice';
+}
+
 function ConfigOptionCard(props: {
   readonly option: ProjectConfigOption;
   readonly onUpdate: (next: ProjectConfigOption) => void;
@@ -46,11 +53,10 @@ function ConfigOptionCard(props: {
           <select
             value={option.optionType}
             onChange={(e) => {
-              const nextType = e.target.value as ProjectConfigOption['optionType'];
-              patch({
-                optionType: nextType,
-                defaultValue: nextType === 'toggle' ? 'true' : nextType === 'number' ? '1.0' : 'Default',
-              });
+              const nextType = parseOptionType(e.target.value);
+              const nextDefault =
+                nextType === 'toggle' ? 'true' : nextType === 'number' ? '1.0' : 'Default';
+              patch({ optionType: nextType, defaultValue: nextDefault });
             }}
           >
             <option value="toggle">Toggle (true/false)</option>
@@ -131,7 +137,11 @@ export function ConfigEditor(props: ConfigEditorProps): React.JSX.Element {
         <div className="module-toolbar">
           <h3>GMCM & config.json ({String(props.options.length)})</h3>
           <div className="inline-row">
-            <button type="button" className="secondary-btn" onClick={() => { handleAdd('toggle'); }}>
+            <button
+              type="button"
+              className="secondary-btn"
+              onClick={() => { handleAdd('toggle'); }}
+            >
               + Toggle
             </button>
             <button

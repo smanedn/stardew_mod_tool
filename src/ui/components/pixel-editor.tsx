@@ -63,7 +63,11 @@ export function PixelEditor(): React.JSX.Element {
   }, [grid, showGrid]);
 
   const handleSizeChange = (nextId: SpriteCanvasSizeId): void => {
-    const preset = SPRITE_CANVAS_PRESETS.find((p) => p.id === nextId) ?? SPRITE_CANVAS_PRESETS[0]!;
+    const preset = SPRITE_CANVAS_PRESETS.find((p) => p.id === nextId) ?? {
+      id: '16x16' as const,
+      width: 16,
+      height: 16,
+    };
     setSizeId(preset.id);
     setGrid(createPixelGrid(preset.width, preset.height));
   };

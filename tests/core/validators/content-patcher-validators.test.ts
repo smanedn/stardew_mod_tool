@@ -42,7 +42,7 @@ describe('Phase 2 Steps 6 & 7: Manifest & Content Patcher 2.0+ Validation', () =
     ).toThrowError(SecurityError);
   });
 
-  it('validates content.json with Load, EditData, EditImage, Include, DynamicTokens, and When', () => {
+  it('validates content.json with Load, EditData, EditImage, Include, DynamicTokens', () => {
     const doc = validateContentJson({
       Format: '2.0.0',
       ConfigSchema: {

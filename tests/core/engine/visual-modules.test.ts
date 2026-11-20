@@ -7,7 +7,11 @@ import {
 
 describe('Phase 3 Steps 16 & 17: Sprite Patcher & Dialogue Tokens', () => {
   it('calculates FromArea and ToArea coordinates from a vanilla sprite preset', () => {
-    const parsnip = VANILLA_SPRITE_GALLERY.find((item) => item.id === 'object-parsnip')!;
+    const parsnip = VANILLA_SPRITE_GALLERY.find((item) => item.id === 'object-parsnip');
+    expect(parsnip).toBeDefined();
+    if (parsnip === undefined) {
+      return;
+    }
     const { fromArea, toArea } = calculateEditImageAreas(parsnip, 16, 16);
 
     expect(fromArea).toEqual({ X: 0, Y: 0, Width: 16, Height: 16 });

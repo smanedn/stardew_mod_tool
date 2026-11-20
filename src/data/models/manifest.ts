@@ -22,7 +22,7 @@ export interface Manifest {
   readonly Name: string;
   readonly Author: string;
   readonly Version: string;
-  readonly Description: string;
+  readonly Description?: string;
   readonly UniqueID: string;
   readonly ContentPackFor: ContentPackFor;
   readonly MinimumApiVersion?: string;

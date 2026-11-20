@@ -78,9 +78,10 @@ export function parseAndVerifyRgbaPngHeader(buffer: Uint8Array): PngImageMetadat
   }
 
   if (bitDepth !== PNG_REQUIRED_BIT_DEPTH || colorType !== PNG_COLOR_TYPE_RGBA) {
+    const found = `depth=${String(bitDepth)}, colorType=${String(colorType)}`;
     throw new SecurityError(
       'ASSET_UNSAFE_CONTENT',
-      `PNG must be 32-bit RGBA (8-bit depth, colorType 6). Found depth=${String(bitDepth)}, colorType=${String(colorType)}.`,
+      `PNG must be 32-bit RGBA (depth=8, colorType=6). Found ${found}.`,
     );
   }
 

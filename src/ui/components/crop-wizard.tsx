@@ -135,7 +135,9 @@ export function CropWizard(props: CropWizardProps): React.JSX.Element {
         </button>
       </div>
       {props.crops.length === 0 ? (
-        <p className="muted-text">No crops yet. Click "+ New Crop" to link seeds and growth stages.</p>
+        <p className="muted-text">
+          No crops yet. Click &quot;+ New Crop&quot; to link seeds and growth stages.
+        </p>
       ) : (
         props.crops.map((entry) => (
           <CropCard

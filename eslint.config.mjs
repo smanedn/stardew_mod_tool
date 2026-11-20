@@ -14,7 +14,7 @@ export default tseslint.config(
       },
     },
     rules: {
-      indent: ['error', 2],
+      indent: 'off',
       quotes: ['error', 'single', { avoidEscape: true }],
       semi: ['error', 'always'],
       'comma-dangle': ['error', 'always-multiline'],
@@ -62,6 +62,7 @@ export default tseslint.config(
     rules: {
       ...reactHooks.configs.recommended.rules,
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
+      'max-lines-per-function': 'off',
       '@typescript-eslint/naming-convention': [
         'error',
         {

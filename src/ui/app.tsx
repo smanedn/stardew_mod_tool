@@ -43,6 +43,16 @@ type EditorTab =
 
 const RECENT_STORAGE_KEY = 'sdv_mod_creator_recent_projects';
 
+function isSdvProjectFile(value: unknown): value is SdvProjectFile {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'formatVersion' in value &&
+    'metadata' in value &&
+    'edits' in value
+  );
+}
+
 function loadRecentProjects(): readonly SdvProjectFile[] {
   try {
     const raw = localStorage.getItem(RECENT_STORAGE_KEY);
@@ -50,7 +60,7 @@ function loadRecentProjects(): readonly SdvProjectFile[] {
       return [];
     }
     const parsed: unknown = JSON.parse(raw);
-    return Array.isArray(parsed) ? (parsed as readonly SdvProjectFile[]) : [];
+    return Array.isArray(parsed) ? parsed.filter(isSdvProjectFile) : [];
   } catch {
     return [];
   }
@@ -65,7 +75,9 @@ function saveRecentProjects(projects: readonly SdvProjectFile[]): void {
 }
 
 export function App(): React.JSX.Element {
-  const [recentProjects, setRecentProjects] = useState<readonly SdvProjectFile[]>(loadRecentProjects);
+  const [recentProjects, setRecentProjects] = useState<readonly SdvProjectFile[]>(
+    loadRecentProjects,
+  );
   const [activeProject, setActiveProject] = useState<SdvProjectFile | null>(null);
   const [activeTab, setActiveTab] = useState<EditorTab>('manifest');
   const [importError, setImportError] = useState<string | null>(null);
@@ -91,7 +103,9 @@ export function App(): React.JSX.Element {
       uniqueId: `Farmer.My${label}Mod`,
     });
     openAndRememberProject(project);
-    setActiveTab(templateId === 'object' ? 'objects' : templateId === 'crop' ? 'crops' : 'manifest');
+    const nextTab: EditorTab =
+      templateId === 'object' ? 'objects' : templateId === 'crop' ? 'crops' : 'manifest';
+    setActiveTab(nextTab);
   };
 
   const handleImportManifest = (manifestJson: string): void => {

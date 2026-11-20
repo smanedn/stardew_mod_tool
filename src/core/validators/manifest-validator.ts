@@ -20,7 +20,7 @@ export const ManifestSchema: z.ZodType<Manifest> = z
     Name: z.string().trim().min(1, 'Name is required.').max(120),
     Author: z.string().trim().min(1, 'Author is required.').max(100),
     Version: SemVerSchema,
-    Description: z.string().trim().max(1000).default(''),
+    Description: z.string().trim().max(1000).optional(),
     UniqueID: UniqueIdSchema,
     ContentPackFor: z
       .object({

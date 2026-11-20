@@ -99,7 +99,9 @@ export function InGamePreview(props: InGamePreviewProps): React.JSX.Element {
         {activeObj !== undefined ? (
           <InventoryTooltipSimulator item={activeObj} />
         ) : (
-          <p className="muted-text">Create a custom object in the Objects tab to preview it here.</p>
+          <p className="muted-text">
+            Create a custom object in the Objects tab to preview it here.
+          </p>
         )}
       </div>
 

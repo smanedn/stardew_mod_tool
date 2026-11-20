@@ -36,7 +36,13 @@ describe('Phase 1 Steps 4 & 5: Vanilla Indexer & .sdvproj', () => {
         },
       ],
       npcs: [
-        { id: 'Abigail', name: 'Abigail', displayName: 'Abigail', homeRegion: 'Town', canRomance: true },
+        {
+          id: 'Abigail',
+          name: 'Abigail',
+          displayName: 'Abigail',
+          homeRegion: 'Town',
+          canRomance: true,
+        },
       ],
       recipes: [
         {

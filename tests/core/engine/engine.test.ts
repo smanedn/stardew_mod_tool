@@ -12,7 +12,12 @@ import {
 import { SecurityError } from '../../../src/core/security/index.js';
 import { SDVPROJ_FORMAT_VERSION, type SdvProjectFile } from '../../../src/data/models/index.js';
 
-function buildMinimalPngBuffer(width: number, height: number, bitDepth: number, colorType: number): Uint8Array {
+function buildMinimalPngBuffer(
+  width: number,
+  height: number,
+  bitDepth: number,
+  colorType: number,
+): Uint8Array {
   const bytes = new Uint8Array(29);
   bytes.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a], 0);
   bytes.set([0x00, 0x00, 0x00, 0x0d], 8);
