@@ -12,3 +12,4 @@ export * from './smapi-launcher.js';
 export * from './smapi-log-parser.js';
 export * from './sprite-patcher.js';
 export * from './ui-simulator.js';
+export * from './zip-packager.js';
