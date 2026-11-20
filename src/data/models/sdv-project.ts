@@ -21,6 +21,7 @@ export interface LinkedAssetEntry {
   readonly id: string;
   readonly relativePath: string;
   readonly kind: 'png' | 'tmx' | 'xnb';
+  readonly dataBase64?: string;
 }
 
 export interface ObjectRecipeConfig {
@@ -79,11 +80,56 @@ export interface DialogueEditEntry {
   readonly when?: PatchConditions;
 }
 
+export type GiftTasteLevel = 'Love' | 'Like' | 'Dislike' | 'Hate';
+
+export interface GiftTasteEditEntry {
+  readonly kind: 'giftTaste';
+  readonly id: string;
+  readonly npcName: string;
+  readonly taste: GiftTasteLevel;
+  readonly itemId: string;
+}
+
+export type VanillaShopId = 'SeedShop' | 'Saloon' | 'Joja' | 'ShadowShop';
+
+export interface ShopEditEntry {
+  readonly kind: 'shop';
+  readonly id: string;
+  readonly shopId: VanillaShopId;
+  readonly itemId: string;
+  readonly price: number;
+}
+
+export interface MailEditEntry {
+  readonly kind: 'mail';
+  readonly id: string;
+  readonly mailId: string;
+  readonly title: string;
+  readonly body: string;
+  readonly attachmentItemId?: string;
+}
+
+export type EventLocationId = 'Town' | 'Farm' | 'Saloon' | 'Beach';
+
+export interface EventEditEntry {
+  readonly kind: 'event';
+  readonly id: string;
+  readonly location: EventLocationId;
+  readonly eventId: string;
+  readonly npcName: string;
+  readonly dialogueText: string;
+  readonly minHearts: number;
+}
+
 export type SdvProjectEdit =
   | ObjectEditEntry
   | CropEditEntry
   | RetextureEditEntry
-  | DialogueEditEntry;
+  | DialogueEditEntry
+  | GiftTasteEditEntry
+  | ShopEditEntry
+  | MailEditEntry
+  | EventEditEntry;
 
 export interface ProjectConfigOption {
   readonly id: string;

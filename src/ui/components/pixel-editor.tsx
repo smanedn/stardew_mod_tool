@@ -8,6 +8,12 @@ import {
   setPixelColor,
 } from '../../core/engine/pixel-grid.js';
 
+import type { LinkedAssetEntry } from '../../data/models/index.js';
+
+export interface PixelEditorProps {
+  readonly onSaveSpriteToMod?: (asset: LinkedAssetEntry) => void;
+}
+
 type PixelTool = 'pencil' | 'eyedropper' | 'eraser';
 
 const PIXEL_SCALE = 14;
@@ -48,12 +54,13 @@ function drawGridToCanvas(
   }
 }
 
-export function PixelEditor(): React.JSX.Element {
+export function PixelEditor(props: PixelEditorProps = {}): React.JSX.Element {
   const [sizeId, setSizeId] = useState<SpriteCanvasSizeId>('16x16');
   const [grid, setGrid] = useState<PixelGrid>(() => createPixelGrid(16, 16));
   const [tool, setTool] = useState<PixelTool>('pencil');
   const [activeColor, setActiveColor] = useState<string>('#d97706');
   const [showGrid, setShowGrid] = useState<boolean>(true);
+  const [savedNotice, setSavedNotice] = useState<string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const previewCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -108,13 +115,13 @@ export function PixelEditor(): React.JSX.Element {
     setGrid(setPixelColor(grid, x, y, tool === 'eraser' ? null : activeColor));
   };
 
-  const handleExportPng = (): void => {
+  const buildExportDataUrl = (): string | null => {
     const exportCanvas = document.createElement('canvas');
     exportCanvas.width = grid.width;
     exportCanvas.height = grid.height;
     const ctx = exportCanvas.getContext('2d');
     if (ctx === null) {
-      return;
+      return null;
     }
     for (let y = 0; y < grid.height; y += 1) {
       for (let x = 0; x < grid.width; x += 1) {
@@ -125,10 +132,30 @@ export function PixelEditor(): React.JSX.Element {
         }
       }
     }
+    return exportCanvas.toDataURL('image/png');
+  };
+
+  const handleExportPng = (): void => {
+    const dataUrl = buildExportDataUrl();
+    if (dataUrl === null) {
+      return;
+    }
     const link = document.createElement('a');
     link.download = `sprite-${sizeId}.png`;
-    link.href = exportCanvas.toDataURL('image/png');
+    link.href = dataUrl;
     link.click();
+  };
+
+  const handleSaveToMod = (): void => {
+    const dataUrl = buildExportDataUrl();
+    if (dataUrl === null || props.onSaveSpriteToMod === undefined) {
+      return;
+    }
+    const base64 = dataUrl.split(',')[1] ?? '';
+    const id = `pixel-${String(Date.now())}`;
+    const relativePath = `assets/custom-sprite-${sizeId}.png`;
+    props.onSaveSpriteToMod({ id, relativePath, kind: 'png', dataBase64: base64 });
+    setSavedNotice(`Added ${relativePath} to your mod .zip!`);
   };
 
   return (
@@ -194,7 +221,13 @@ export function PixelEditor(): React.JSX.Element {
         <button type="button" className="secondary-btn" onClick={handleExportPng}>
           Download PNG
         </button>
+        {props.onSaveSpriteToMod !== undefined && (
+          <button type="button" className="launch-btn" onClick={handleSaveToMod}>
+            Add Sprite to Mod
+          </button>
+        )}
       </div>
+      {savedNotice !== null && <p className="muted-text">{savedNotice}</p>}
 
       <div className="pixel-canvas-wrap">
         <canvas

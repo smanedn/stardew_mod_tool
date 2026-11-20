@@ -6,6 +6,11 @@ import {
 } from '../../core/engine/browser-compiler.js';
 import { createBrowserModZipBytes } from '../../core/engine/browser-zip.js';
 import {
+  detectModsFolderViaTauri,
+  exportModToModsViaTauri,
+  isTauriDesktopRuntime,
+} from '../../core/engine/tauri-bridge.js';
+import {
   type PortraitMood,
   computeEnergyHealthFromEdibility,
   formatObjectCategoryLabel,
@@ -95,6 +100,8 @@ export function InGamePreview(props: InGamePreviewProps): React.JSX.Element {
   const [selectedObjId, setSelectedObjId] = useState<string>(props.objects[0]?.id ?? '');
   const [selectedDlgId, setSelectedDlgId] = useState<string>(props.dialogues[0]?.id ?? '');
   const [farmerName, setFarmerName] = useState<string>('Farmer');
+  const [exportStatus, setExportStatus] = useState<string | null>(null);
+  const isDesktop = isTauriDesktopRuntime();
 
   const activeObj = props.objects.find((o) => o.id === selectedObjId) ?? props.objects[0];
   const activeDlg = props.dialogues.find((d) => d.id === selectedDlgId) ?? props.dialogues[0];
@@ -130,6 +137,21 @@ export function InGamePreview(props: InGamePreviewProps): React.JSX.Element {
     );
   };
 
+  const handleDesktopExport = (): void => {
+    if (props.project === undefined) {
+      return;
+    }
+    const activeProj = props.project;
+    void detectModsFolderViaTauri().then(async (modsDir) => {
+      if (modsDir === null) {
+        setExportStatus('Stardew Valley Mods folder not found automatically. Use Download .zip.');
+        return;
+      }
+      const outDir = await exportModToModsViaTauri(modsDir, activeProj);
+      setExportStatus(`Exported directly to ${outDir}!`);
+    });
+  };
+
   return (
     <div className="module-container">
       {props.project !== undefined && (
@@ -143,6 +165,11 @@ export function InGamePreview(props: InGamePreviewProps): React.JSX.Element {
               </span>
             </div>
             <div className="inline-row">
+              {isDesktop && (
+                <button type="button" className="launch-btn" onClick={handleDesktopExport}>
+                  Export to Mods/
+                </button>
+              )}
               <button type="button" className="launch-btn" onClick={handleDownloadZip}>
                 Download Ready .zip
               </button>
@@ -158,6 +185,7 @@ export function InGamePreview(props: InGamePreviewProps): React.JSX.Element {
               </button>
             </div>
           </div>
+          {exportStatus !== null && <p className="muted-text">{exportStatus}</p>}
         </div>
       )}
 

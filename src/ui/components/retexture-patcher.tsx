@@ -22,6 +22,17 @@ const CATEGORIES: readonly ('All' | SpriteGalleryCategory)[] = [
   'Object',
 ];
 
+function readFileAsBase64(file: File): Promise<string> {
+  return file.arrayBuffer().then((buffer) => {
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    for (const byte of bytes) {
+      binary += String.fromCharCode(byte);
+    }
+    return btoa(binary);
+  });
+}
+
 function readImageDimensions(file: File): Promise<{ width: number; height: number }> {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file);
@@ -66,31 +77,34 @@ export function RetexturePatcher(props: RetexturePatcherProps): React.JSX.Elemen
     if (file === undefined) {
       return;
     }
-    void readImageDimensions(file).then(({ width, height }) => {
-      const { fromArea, toArea } = calculateEditImageAreas(selectedPreset, width, height);
-      const assetId = `asset-${String(Date.now())}`;
-      const safeName = file.name.toLowerCase().replace(/[^a-z0-9.]+/g, '-');
-      const asset: LinkedAssetEntry = {
-        id: assetId,
-        relativePath: `assets/${safeName}`,
-        kind: 'png',
-      };
-      props.onAddRetexture(
-        {
-          kind: 'retexture',
-          id: `edit-retexture-${String(Date.now())}`,
-          target: selectedPreset.target,
-          assetId,
-          fromArea,
-          toArea,
-        },
-        asset,
-      );
-      const dims = `${String(width)}x${String(height)}px`;
-      const pos = `${String(toArea.X)}, ${String(toArea.Y)}`;
-      const size = `${String(toArea.Width)}x${String(toArea.Height)}`;
-      setUploadInfo(`Uploaded ${file.name} (${dims}) -> ToArea (${pos}, ${size})`);
-    });
+    void Promise.all([readImageDimensions(file), readFileAsBase64(file)]).then(
+      ([{ width, height }, dataBase64]) => {
+        const { fromArea, toArea } = calculateEditImageAreas(selectedPreset, width, height);
+        const assetId = `asset-${String(Date.now())}`;
+        const safeName = file.name.toLowerCase().replace(/[^a-z0-9.]+/g, '-');
+        const asset: LinkedAssetEntry = {
+          id: assetId,
+          relativePath: `assets/${safeName}`,
+          kind: 'png',
+          dataBase64,
+        };
+        props.onAddRetexture(
+          {
+            kind: 'retexture',
+            id: `edit-retexture-${String(Date.now())}`,
+            target: selectedPreset.target,
+            assetId,
+            fromArea,
+            toArea,
+          },
+          asset,
+        );
+        const dims = `${String(width)}x${String(height)}px`;
+        const pos = `${String(toArea.X)}, ${String(toArea.Y)}`;
+        const size = `${String(toArea.Width)}x${String(toArea.Height)}`;
+        setUploadInfo(`Uploaded ${file.name} (${dims}) -> ToArea (${pos}, ${size})`);
+      },
+    );
   };
 
   const previewAreas = calculateEditImageAreas(selectedPreset);

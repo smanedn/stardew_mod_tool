@@ -3,11 +3,15 @@ import type {
   ContentPatch,
   CropEditEntry,
   DialogueEditEntry,
+  EventEditEntry,
+  GiftTasteEditEntry,
   LinkedAssetEntry,
+  MailEditEntry,
   Manifest,
   ObjectEditEntry,
   RetextureEditEntry,
   SdvProjectFile,
+  ShopEditEntry,
 } from '../../data/models/index.js';
 import { SecurityError } from '../security/security-error.js';
 import { validateContentJson } from '../validators/content-patcher-validator.js';
@@ -193,6 +197,81 @@ function compileDialoguePatch(edit: DialogueEditEntry): ContentPatch {
   };
 }
 
+const GIFT_FIELD_INDEX: Readonly<Record<GiftTasteEditEntry['taste'], string>> = {
+  Love: '1',
+  Like: '3',
+  Dislike: '5',
+  Hate: '7',
+};
+
+function compileGiftTastePatch(edit: GiftTasteEditEntry): ContentPatch {
+  return {
+    Action: 'EditData',
+    LogName: `Gift Taste: ${edit.npcName} (${edit.taste})`,
+    Target: 'Data/NPCGiftTastes',
+    Fields: {
+      [edit.npcName]: {
+        [GIFT_FIELD_INDEX[edit.taste]]: edit.itemId,
+      },
+    },
+  };
+}
+
+function compileShopPatch(edit: ShopEditEntry): ContentPatch {
+  return {
+    Action: 'EditData',
+    LogName: `Add to Shop: ${edit.shopId}`,
+    Target: 'Data/Shops',
+    Fields: {
+      [edit.shopId]: {
+        Items: [
+          {
+            Id: edit.id,
+            ItemId: `(O)${edit.itemId}`,
+            Price: edit.price,
+          },
+        ],
+      },
+    },
+  };
+}
+
+function compileMailPatch(edit: MailEditEntry): ContentPatch {
+  const attach =
+    edit.attachmentItemId !== undefined && edit.attachmentItemId.trim().length > 0
+      ? ` %item object ${edit.attachmentItemId.trim()} 1 %%`
+      : '';
+  return {
+    Action: 'EditData',
+    LogName: `Mail: ${edit.title}`,
+    Target: 'Data/mail',
+    Entries: {
+      [edit.mailId]: `${edit.body}${attach}[#]${edit.title}`,
+    },
+  };
+}
+
+function compileEventPatch(edit: EventEditEntry): ContentPatch {
+  const cleanText = edit.dialogueText.replace(/"/g, "'");
+  const heartsPoints = edit.minHearts * 250;
+  const eventKey = `${edit.eventId}/f ${edit.npcName} ${String(heartsPoints)}`;
+  const script = [
+    'continue',
+    '64 15',
+    `farmer 64 18 0 ${edit.npcName} 64 16 2`,
+    'pause 400',
+    `speak ${edit.npcName} "${cleanText}"`,
+    'end',
+  ].join('/');
+
+  return {
+    Action: 'EditData',
+    LogName: `Event: ${edit.location} (${edit.npcName})`,
+    Target: `Data/Events/${edit.location}`,
+    Entries: { [eventKey]: script },
+  };
+}
+
 /**
  * Compiles .sdvproj edits into a validated Content Patcher 2.0+ content.json document.
  */
@@ -211,8 +290,16 @@ export function compileProjectToContentJson(project: SdvProjectFile): ContentJso
       changes.push(compileCropPatch(edit));
     } else if (edit.kind === 'retexture') {
       changes.push(compileRetexturePatch(edit, assetsById));
-    } else {
+    } else if (edit.kind === 'dialogue') {
       changes.push(compileDialoguePatch(edit));
+    } else if (edit.kind === 'giftTaste') {
+      changes.push(compileGiftTastePatch(edit));
+    } else if (edit.kind === 'shop') {
+      changes.push(compileShopPatch(edit));
+    } else if (edit.kind === 'mail') {
+      changes.push(compileMailPatch(edit));
+    } else {
+      changes.push(compileEventPatch(edit));
     }
   }
 

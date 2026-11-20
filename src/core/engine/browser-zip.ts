@@ -104,8 +104,43 @@ export function buildStoredZipBytes(entries: readonly BrowserZipEntry[]): Uint8A
   return concatUint8Arrays([...localParts, centralBytes, eocd]);
 }
 
+function decodeBase64ToBytes(base64: string): Uint8Array {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+}
+
+function collectOptionalAssetEntries(
+  project: SdvProjectFile,
+  rootFolder: string,
+  encoder: TextEncoder,
+): readonly BrowserZipEntry[] {
+  const extra: BrowserZipEntry[] = [];
+  for (const [relPath, localeEntries] of Object.entries(buildLocaleFileMap(project))) {
+    if (Object.keys(localeEntries).length > 0) {
+      extra.push({
+        path: `${rootFolder}/${relPath}`,
+        data: encoder.encode(serializeCleanJson(localeEntries)),
+      });
+    }
+  }
+  for (const asset of project.assets) {
+    if (asset.dataBase64 !== undefined && asset.dataBase64.length > 0) {
+      extra.push({
+        path: `${rootFolder}/${asset.relativePath}`,
+        data: decodeBase64ToBytes(asset.dataBase64),
+      });
+    }
+  }
+  return extra;
+}
+
 /**
- * Packages a complete Content Patcher mod into a ready-to-install .zip byte array.
+ * Packages a complete Content Patcher mod into a ready-to-install .zip byte array,
+ * including any in-memory PNG sprites stored on LinkedAssetEntry.dataBase64.
  */
 export function createBrowserModZipBytes(project: SdvProjectFile): {
   readonly zipName: string;
@@ -131,14 +166,7 @@ export function createBrowserModZipBytes(project: SdvProjectFile): {
     });
   }
 
-  for (const [relPath, localeEntries] of Object.entries(buildLocaleFileMap(project))) {
-    if (Object.keys(localeEntries).length > 0) {
-      entries.push({
-        path: `${rootFolder}/${relPath}`,
-        data: encoder.encode(serializeCleanJson(localeEntries)),
-      });
-    }
-  }
+  entries.push(...collectOptionalAssetEntries(project, rootFolder, encoder));
 
   return {
     zipName: `${rootFolder} v${project.metadata.version}.zip`,

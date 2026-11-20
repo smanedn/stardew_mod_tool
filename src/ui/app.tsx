@@ -17,7 +17,10 @@ import {
 import type {
   CropEditEntry,
   DialogueEditEntry,
+  EventEditEntry,
+  GiftTasteEditEntry,
   LinkedAssetEntry,
+  MailEditEntry,
   ObjectEditEntry,
   ProjectConfigOption,
   ProjectTranslations,
@@ -25,12 +28,15 @@ import type {
   SdvProjectEdit,
   SdvProjectFile,
   SdvProjectMetadata,
+  ShopEditEntry,
 } from '../data/models/index.js';
 import {
   CodeInspector,
   ConfigEditor,
   CropWizard,
   DialogueEditor,
+  EventBuilder,
+  GiftTastesEditor,
   I18nEditor,
   InGamePreview,
   ManifestEditor,
@@ -40,6 +46,7 @@ import {
   ProjectDashboard,
   QuickLaunchPanel,
   RetexturePatcher,
+  ShopMailEditor,
   type TutorialTargetTab,
 } from './components/index.js';
 import './styles.css';
@@ -50,6 +57,9 @@ type EditorTab =
   | 'crops'
   | 'retexture'
   | 'dialogue'
+  | 'gifts'
+  | 'shops'
+  | 'events'
   | 'config'
   | 'pixel'
   | 'i18n'
@@ -388,6 +398,25 @@ export function App(): React.JSX.Element {
     activeProject?.edits.filter((e): e is RetextureEditEntry => e.kind === 'retexture') ?? [];
   const dialogueEdits: readonly DialogueEditEntry[] =
     activeProject?.edits.filter((e): e is DialogueEditEntry => e.kind === 'dialogue') ?? [];
+  const giftTasteEdits: readonly GiftTasteEditEntry[] =
+    activeProject?.edits.filter((e): e is GiftTasteEditEntry => e.kind === 'giftTaste') ?? [];
+  const shopEdits: readonly ShopEditEntry[] =
+    activeProject?.edits.filter((e): e is ShopEditEntry => e.kind === 'shop') ?? [];
+  const mailEdits: readonly MailEditEntry[] =
+    activeProject?.edits.filter((e): e is MailEditEntry => e.kind === 'mail') ?? [];
+  const eventEdits: readonly EventEditEntry[] =
+    activeProject?.edits.filter((e): e is EventEditEntry => e.kind === 'event') ?? [];
+
+  const handleSavePixelSprite = (newAsset: LinkedAssetEntry): void => {
+    if (activeProject === null) {
+      return;
+    }
+    applyProjectChange('Save Pixel Sprite', {
+      ...activeProject,
+      updatedAt: new Date().toISOString(),
+      assets: [...activeProject.assets, newAsset],
+    });
+  };
 
   return (
     <main className="app-shell">
@@ -497,6 +526,9 @@ export function App(): React.JSX.Element {
                   'objects',
                   'crops',
                   'dialogue',
+                  'gifts',
+                  'shops',
+                  'events',
                   'retexture',
                   'pixel',
                   'preview',
@@ -509,6 +541,9 @@ export function App(): React.JSX.Element {
                   'objects',
                   'crops',
                   'dialogue',
+                  'gifts',
+                  'shops',
+                  'events',
                   'retexture',
                   'pixel',
                   'preview',
@@ -528,17 +563,23 @@ export function App(): React.JSX.Element {
                       ? '3. Crops'
                       : tab === 'dialogue'
                         ? '4. Villager Chat'
-                        : tab === 'retexture'
-                          ? '5. Sprites'
-                          : tab === 'pixel'
-                            ? '6. Draw Sprite'
-                            : tab === 'preview'
-                              ? '7. Preview & Export'
-                              : tab === 'config'
-                                ? 'Config (GMCM)'
-                                : tab === 'i18n'
-                                  ? 'Translations'
-                                  : 'Test in Game'}
+                        : tab === 'gifts'
+                          ? '5. Gift Tastes'
+                          : tab === 'shops'
+                            ? '6. Shops & Mail'
+                            : tab === 'events'
+                              ? '7. Cutscenes'
+                              : tab === 'retexture'
+                                ? '8. Sprites'
+                                : tab === 'pixel'
+                                  ? '9. Draw Sprite'
+                                  : tab === 'preview'
+                                    ? '10. Preview & Export'
+                                    : tab === 'config'
+                                      ? 'Config (GMCM)'
+                                      : tab === 'i18n'
+                                        ? 'Translations'
+                                        : 'Test in Game'}
               </button>
             ))}
           </nav>
@@ -611,13 +652,72 @@ export function App(): React.JSX.Element {
                   }}
                 />
               )}
+              {activeTab === 'gifts' && (
+                <GiftTastesEditor
+                  uniqueId={activeProject.metadata.uniqueId}
+                  giftTastes={giftTasteEdits}
+                  objects={objectEdits}
+                  onAddGiftTaste={(entry) => {
+                    updateProjectEdits([...activeProject.edits, entry]);
+                  }}
+                  onUpdateGiftTaste={(entry) => {
+                    updateProjectEdits(
+                      activeProject.edits.map((item) => (item.id === entry.id ? entry : item)),
+                    );
+                  }}
+                  onRemoveGiftTaste={(id) => {
+                    updateProjectEdits(activeProject.edits.filter((item) => item.id !== id));
+                  }}
+                />
+              )}
+              {activeTab === 'shops' && (
+                <ShopMailEditor
+                  uniqueId={activeProject.metadata.uniqueId}
+                  shops={shopEdits}
+                  mails={mailEdits}
+                  objects={objectEdits}
+                  onAddShop={(entry) => { updateProjectEdits([...activeProject.edits, entry]); }}
+                  onUpdateShop={(entry) => {
+                    updateProjectEdits(
+                      activeProject.edits.map((item) => (item.id === entry.id ? entry : item)),
+                    );
+                  }}
+                  onRemoveShop={(id) => {
+                    updateProjectEdits(activeProject.edits.filter((item) => item.id !== id));
+                  }}
+                  onAddMail={(entry) => { updateProjectEdits([...activeProject.edits, entry]); }}
+                  onUpdateMail={(entry) => {
+                    updateProjectEdits(
+                      activeProject.edits.map((item) => (item.id === entry.id ? entry : item)),
+                    );
+                  }}
+                  onRemoveMail={(id) => {
+                    updateProjectEdits(activeProject.edits.filter((item) => item.id !== id));
+                  }}
+                />
+              )}
+              {activeTab === 'events' && (
+                <EventBuilder
+                  uniqueId={activeProject.metadata.uniqueId}
+                  events={eventEdits}
+                  onAddEvent={(entry) => { updateProjectEdits([...activeProject.edits, entry]); }}
+                  onUpdateEvent={(entry) => {
+                    updateProjectEdits(
+                      activeProject.edits.map((item) => (item.id === entry.id ? entry : item)),
+                    );
+                  }}
+                  onRemoveEvent={(id) => {
+                    updateProjectEdits(activeProject.edits.filter((item) => item.id !== id));
+                  }}
+                />
+              )}
               {activeTab === 'config' && (
                 <ConfigEditor
                   options={activeProject.configOptions ?? []}
                   onChange={handleConfigChange}
                 />
               )}
-              {activeTab === 'pixel' && <PixelEditor />}
+              {activeTab === 'pixel' && <PixelEditor onSaveSpriteToMod={handleSavePixelSprite} />}
               {activeTab === 'i18n' && (
                 <I18nEditor
                   project={activeProject}

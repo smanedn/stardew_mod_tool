@@ -32,6 +32,7 @@ const LinkedAssetSchema = z
     id: z.string().trim().min(1).max(64),
     relativePath: RelativeAssetPathSchema,
     kind: z.enum(['png', 'tmx', 'xnb']),
+    dataBase64: z.string().optional(),
   })
   .strict();
 
@@ -103,6 +104,49 @@ const DialogueEditSchema = z
   })
   .strict();
 
+const GiftTasteEditSchema = z
+  .object({
+    kind: z.literal('giftTaste'),
+    id: z.string().min(1),
+    npcName: z.string().min(1),
+    taste: z.enum(['Love', 'Like', 'Dislike', 'Hate']),
+    itemId: z.string().min(1),
+  })
+  .strict();
+
+const ShopEditSchema = z
+  .object({
+    kind: z.literal('shop'),
+    id: z.string().min(1),
+    shopId: z.enum(['SeedShop', 'Saloon', 'Joja', 'ShadowShop']),
+    itemId: z.string().min(1),
+    price: z.number().int().min(0),
+  })
+  .strict();
+
+const MailEditSchema = z
+  .object({
+    kind: z.literal('mail'),
+    id: z.string().min(1),
+    mailId: z.string().min(1),
+    title: z.string().min(1),
+    body: z.string().min(1),
+    attachmentItemId: z.string().min(1).optional(),
+  })
+  .strict();
+
+const EventEditSchema = z
+  .object({
+    kind: z.literal('event'),
+    id: z.string().min(1),
+    location: z.enum(['Town', 'Farm', 'Saloon', 'Beach']),
+    eventId: z.string().min(1),
+    npcName: z.string().min(1),
+    dialogueText: z.string().min(1),
+    minHearts: z.number().int().min(0).max(14),
+  })
+  .strict();
+
 const ProjectConfigOptionSchema = z
   .object({
     id: z.string().min(1),
@@ -131,6 +175,10 @@ export const SdvProjectSchema: z.ZodType<SdvProjectFile> = z
         CropEditSchema,
         RetextureEditSchema,
         DialogueEditSchema,
+        GiftTasteEditSchema,
+        ShopEditSchema,
+        MailEditSchema,
+        EventEditSchema,
       ]),
     ),
     configOptions: z.array(ProjectConfigOptionSchema).optional(),
