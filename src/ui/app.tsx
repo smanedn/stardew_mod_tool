@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { computeModReadiness } from '../core/engine/mod-readiness.js';
 import {
   type ProjectTemplateId,
   createProjectFromTemplate,
@@ -70,7 +71,22 @@ const RECENT_STORAGE_KEY = 'sdv_mod_creator_recent_projects';
 const RECOVERY_STORAGE_KEY = 'sdv_mod_creator_recovery_snapshot';
 const ONBOARDING_STORAGE_KEY = 'sdv_mod_creator_onboarding_done';
 const THEME_STORAGE_KEY = 'sdv_mod_creator_theme';
+const SEASON_STORAGE_KEY = 'sdv_mod_creator_season';
 const BROWSER_AUTO_RECOVERY_MS = 120_000;
+
+type ValleySeason = 'spring' | 'summer' | 'fall' | 'winter';
+
+function loadInitialSeason(): ValleySeason {
+  try {
+    const val = localStorage.getItem(SEASON_STORAGE_KEY);
+    if (val === 'summer' || val === 'fall' || val === 'winter') {
+      return val;
+    }
+    return 'spring';
+  } catch {
+    return 'spring';
+  }
+}
 
 function loadInitialTheme(): 'light' | 'dark' {
   try {
@@ -132,16 +148,19 @@ export function App(): React.JSX.Element {
   const [showInspector, setShowInspector] = useState<boolean>(false);
   const [showOnboarding, setShowOnboarding] = useState<boolean>(loadInitialOnboarding);
   const [theme, setTheme] = useState<'light' | 'dark'>(loadInitialTheme);
+  const [season, setSeason] = useState<ValleySeason>(loadInitialSeason);
   const [importError, setImportError] = useState<string | null>(null);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
+    document.documentElement.setAttribute('data-season', season);
     try {
       localStorage.setItem(THEME_STORAGE_KEY, theme);
+      localStorage.setItem(SEASON_STORAGE_KEY, season);
     } catch {
       // Ignore storage errors.
     }
-  }, [theme]);
+  }, [theme, season]);
 
   const persistActiveProject = useCallback(
     (project: SdvProjectFile): void => {
@@ -390,6 +409,65 @@ export function App(): React.JSX.Element {
     setActiveTab(tab);
   };
 
+  const handleLoadSampleMod = (): void => {
+    const base = createProjectFromTemplate('object', {
+      name: 'Starberry Deluxe',
+      author: 'Smane',
+      version: '0.4.0',
+      description: 'Adds Starberry fruit, seeds, Abigail dialogue, shop listing, and gift tastes.',
+      uniqueId: 'Smane.StarberryDeluxe',
+    });
+    const itemId = 'Smane.StarberryDeluxe_Starberry';
+    openAndRememberProject({
+      ...base,
+      edits: [
+        {
+          kind: 'object',
+          id: 'sample-obj',
+          itemId,
+          displayName: 'Starberry',
+          description: 'A glowing berry infused with valley starlight.',
+          price: 280,
+          edibility: 45,
+          category: -79,
+          buff: { speed: 1, luck: 2, durationSeconds: 180 },
+        },
+        {
+          kind: 'crop',
+          id: 'sample-crop',
+          seedItemId: 'Smane.StarberryDeluxe_Seeds',
+          harvestItemId: itemId,
+          seasons: ['Spring', 'Summer'],
+          daysInPhase: [1, 2, 2, 3],
+        },
+        {
+          kind: 'dialogue',
+          id: 'sample-dlg',
+          npcName: 'Abigail',
+          dialogueKey: 'Mon',
+          text: 'Hey @! Have you grown any Starberries this season?$h',
+        },
+        {
+          kind: 'giftTaste',
+          id: 'sample-gift',
+          npcName: 'Abigail',
+          taste: 'Love',
+          itemId,
+        },
+        {
+          kind: 'shop',
+          id: 'sample-shop',
+          shopId: 'SeedShop',
+          itemId,
+          price: 350,
+        },
+      ],
+    });
+    setActiveTab('preview');
+  };
+
+  const readiness = activeProject !== null ? computeModReadiness(activeProject) : null;
+
   const objectEdits: readonly ObjectEditEntry[] =
     activeProject?.edits.filter((e): e is ObjectEditEntry => e.kind === 'object') ?? [];
   const cropEdits: readonly CropEditEntry[] =
@@ -420,12 +498,29 @@ export function App(): React.JSX.Element {
 
   return (
     <main className="app-shell">
-      <header className="app-header">
-        <div>
-          <h1>Stardew Valley Mod Creator - by Smane</h1>
-          <p className="app-subtitle">Content Patcher Pack Studio (SMAPI 4.0+)</p>
+      <header className="app-header hero-banner">
+        <div className="hero-brand">
+          <img src="/logo.png" alt="SVMC Logo" className="hero-logo" />
+          <div>
+            <h1>Stardew Valley Mod Creator - by Smane</h1>
+            <p className="app-subtitle">Cozy Content Patcher Studio • v0.4.0</p>
+          </div>
         </div>
         <div className="inline-row">
+          <select
+            className="season-select"
+            aria-label="Valley Season Theme"
+            value={season}
+            onChange={(e) => {
+              const v = e.target.value;
+              setSeason(v === 'summer' || v === 'fall' || v === 'winter' ? v : 'spring');
+            }}
+          >
+            <option value="spring">🌸 Spring</option>
+            <option value="summer">☀️ Summer</option>
+            <option value="fall">🍂 Fall</option>
+            <option value="winter">❄️ Winter</option>
+          </select>
           <button
             type="button"
             className="secondary-btn"
@@ -512,6 +607,7 @@ export function App(): React.JSX.Element {
         <ProjectDashboard
           recentProjects={recentProjects}
           onCreateFromTemplate={handleCreateTemplate}
+          onLoadSampleMod={handleLoadSampleMod}
           onOpenRecent={openAndRememberProject}
           onDeleteRecent={handleDeleteProject}
           onImportManifest={handleImportManifest}
@@ -519,6 +615,22 @@ export function App(): React.JSX.Element {
         />
       ) : (
         <>
+          {readiness !== null && (
+            <div className="readiness-bar-card">
+              <div className="module-toolbar">
+                <strong>
+                  Mod Readiness: {String(readiness.scorePercent)}% — {readiness.summaryLabel}
+                </strong>
+                <span className="muted-text">{activeProject.metadata.name}</span>
+              </div>
+              <div className="tutorial-progress-track">
+                <div
+                  className="tutorial-progress-fill"
+                  style={{ width: `${String(readiness.scorePercent)}%` }}
+                />
+              </div>
+            </div>
+          )}
           <nav className="workspace-tabs">
             {(advancedMode
               ? ([
@@ -585,7 +697,7 @@ export function App(): React.JSX.Element {
           </nav>
 
           <div className={advancedMode && showInspector ? 'workspace-with-inspector' : ''}>
-            <div className="workspace-main">
+            <div key={activeTab} className="workspace-main tab-panel-animate">
               {activeTab === 'manifest' && (
                 <ManifestEditor
                   metadata={activeProject.metadata}

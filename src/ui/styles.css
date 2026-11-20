@@ -640,3 +640,133 @@ body {
 .pulse-btn {
   animation: softPulse 2s infinite ease-in-out;
 }
+
+/* v0.4.0 Stardew Valley Modern Remodel & Seasonal Themes */
+:root[data-season='spring'] {
+  --season-accent: #16a34a;
+  --hero-gradient: linear-gradient(135deg, #63a4ff 0%, #98d8aa 55%, #f6e2a5 100%);
+}
+
+:root[data-season='summer'] {
+  --season-accent: #d97706;
+  --hero-gradient: linear-gradient(135deg, #2563eb 0%, #38bdf8 55%, #fde047 100%);
+}
+
+:root[data-season='fall'] {
+  --season-accent: #c2410c;
+  --hero-gradient: linear-gradient(135deg, #7c2d12 0%, #ea580c 55%, #facc15 100%);
+}
+
+:root[data-season='winter'] {
+  --season-accent: #0284c7;
+  --hero-gradient: linear-gradient(135deg, #1e3a8a 0%, #60a5fa 55%, #e0f2fe 100%);
+}
+
+:root[data-theme='dark'][data-season='spring'],
+:root[data-theme='dark'][data-season='summer'],
+:root[data-theme='dark'][data-season='fall'],
+:root[data-theme='dark'][data-season='winter'] {
+  --hero-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #3b2a1a 100%);
+}
+
+.hero-banner {
+  background: var(--hero-gradient);
+  border: 3px solid #7c3f18;
+  border-radius: 14px;
+  padding: 1.15rem 1.5rem;
+  box-shadow: 0 6px 0 rgba(124, 63, 24, 0.28), 0 12px 24px rgba(0, 0, 0, 0.08);
+}
+
+.hero-banner h1 {
+  color: #ffffff;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+}
+
+.hero-banner .app-subtitle {
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 600;
+}
+
+.hero-brand {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+@keyframes gentleFloat {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+.hero-logo {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  animation: gentleFloat 4s ease-in-out infinite;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+}
+
+.season-select,
+.search-input {
+  background: var(--bg-input);
+  color: var(--text-main);
+  border: 2px solid var(--border-card);
+  border-radius: 8px;
+  padding: 0.42rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.dashboard-section,
+.module-card,
+.manifest-form,
+.json-preview-panel {
+  box-shadow: 0 4px 0 rgba(124, 63, 24, 0.14), 0 8px 20px rgba(0, 0, 0, 0.04);
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease;
+}
+
+.tab-btn {
+  transition: transform 0.15s ease, background-color 0.2s ease, box-shadow 0.15s ease;
+  box-shadow: 0 2px 0 rgba(124, 63, 24, 0.2);
+}
+
+.tab-btn:hover {
+  transform: translateY(-2px);
+}
+
+.tab-btn.active {
+  background: var(--season-accent, #9c6635);
+  border-color: var(--season-accent, #9c6635);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.18);
+}
+
+@keyframes tabFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tab-panel-animate {
+  animation: tabFadeIn 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.readiness-bar-card {
+  background: var(--bg-card);
+  border: 2px solid var(--border-card);
+  border-radius: 10px;
+  padding: 0.75rem 1.15rem;
+  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}

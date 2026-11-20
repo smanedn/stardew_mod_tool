@@ -8,6 +8,7 @@ import type { SdvProjectFile } from '../../data/models/index.js';
 export interface ProjectDashboardProps {
   readonly recentProjects: readonly SdvProjectFile[];
   readonly onCreateFromTemplate: (templateId: ProjectTemplateId) => void;
+  readonly onLoadSampleMod: () => void;
   readonly onOpenRecent: (project: SdvProjectFile) => void;
   readonly onDeleteRecent: (uniqueId: string) => void;
   readonly onImportManifest: (manifestJson: string) => void;
@@ -92,13 +93,30 @@ function ImportModSection(props: {
 }
 
 export function ProjectDashboard(props: ProjectDashboardProps): React.JSX.Element {
+  const [searchQuery, setSearchQuery] = useState('');
+  const filteredProjects = props.recentProjects.filter((proj) => {
+    const q = searchQuery.trim().toLowerCase();
+    return (
+      q.length === 0 ||
+      proj.metadata.name.toLowerCase().includes(q) ||
+      proj.metadata.author.toLowerCase().includes(q)
+    );
+  });
+
   return (
     <div className="dashboard-container">
       <section className="dashboard-section">
-        <h3>What do you want to create today?</h3>
-        <p className="muted-text">
-          Pick one below — no coding needed! We will guide you step by step.
-        </p>
+        <div className="module-toolbar">
+          <div>
+            <h3>What do you want to create today?</h3>
+            <p className="muted-text">
+              Pick one below — no coding needed! We will guide you step by step.
+            </p>
+          </div>
+          <button type="button" className="launch-btn" onClick={props.onLoadSampleMod}>
+            ✨ Try Full Sample Mod
+          </button>
+        </div>
         <div className="template-grid">
           {PROJECT_TEMPLATES.map((tpl) => (
             <button
@@ -118,12 +136,27 @@ export function ProjectDashboard(props: ProjectDashboardProps): React.JSX.Elemen
       </section>
 
       <section className="dashboard-section">
-        <h3>Your Saved Mods</h3>
-        {props.recentProjects.length === 0 ? (
-          <p className="muted-text">You haven&apos;t created any mods yet. Pick a card above!</p>
+        <div className="module-toolbar">
+          <h3>Your Saved Mods ({String(props.recentProjects.length)})</h3>
+          {props.recentProjects.length > 0 && (
+            <input
+              type="search"
+              className="search-input"
+              placeholder="Search saved mods..."
+              value={searchQuery}
+              onChange={(e) => { setSearchQuery(e.target.value); }}
+            />
+          )}
+        </div>
+        {filteredProjects.length === 0 ? (
+          <p className="muted-text">
+            {props.recentProjects.length === 0
+              ? "You haven't created any mods yet. Pick a card above!"
+              : 'No saved mods match your search.'}
+          </p>
         ) : (
           <ul className="recent-list">
-            {props.recentProjects.map((proj) => (
+            {filteredProjects.map((proj) => (
               <li key={proj.metadata.uniqueId} className="recent-item">
                 <div>
                   <strong>{proj.metadata.name}</strong>{' '}
