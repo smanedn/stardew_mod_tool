@@ -83,12 +83,13 @@ function buildAssetLookup(
 }
 
 function compileObjectPatch(edit: ObjectEditEntry): ContentPatch {
+  const buff = edit.buff;
   const hasBuff =
-    edit.buff !== undefined &&
-    ((edit.buff.speed ?? 0) !== 0 ||
-      (edit.buff.luck ?? 0) !== 0 ||
-      (edit.buff.farming ?? 0) > 0 ||
-      (edit.buff.mining ?? 0) > 0);
+    buff !== undefined &&
+    ((buff.speed ?? 0) !== 0 ||
+      (buff.luck ?? 0) !== 0 ||
+      (buff.farming ?? 0) > 0 ||
+      (buff.mining ?? 0) > 0);
 
   return {
     Action: 'EditData',
@@ -102,18 +103,16 @@ function compileObjectPatch(edit: ObjectEditEntry): ContentPatch {
         Price: edit.price,
         Edibility: edit.edibility,
         Category: edit.category,
-        ...(hasBuff && edit.buff !== undefined
+        ...(hasBuff
           ? {
               Buffs: [
                 {
-                  Duration: edit.buff.durationSeconds ?? 120,
+                  Duration: buff.durationSeconds ?? 120,
                   CustomAttributes: {
-                    ...(edit.buff.speed !== undefined ? { Speed: edit.buff.speed } : {}),
-                    ...(edit.buff.luck !== undefined ? { LuckLevel: edit.buff.luck } : {}),
-                    ...(edit.buff.farming !== undefined
-                      ? { FarmingLevel: edit.buff.farming }
-                      : {}),
-                    ...(edit.buff.mining !== undefined ? { MiningLevel: edit.buff.mining } : {}),
+                    ...(buff.speed !== undefined ? { Speed: buff.speed } : {}),
+                    ...(buff.luck !== undefined ? { LuckLevel: buff.luck } : {}),
+                    ...(buff.farming !== undefined ? { FarmingLevel: buff.farming } : {}),
+                    ...(buff.mining !== undefined ? { MiningLevel: buff.mining } : {}),
                   },
                 },
               ],
