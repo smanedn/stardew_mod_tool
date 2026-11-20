@@ -16,6 +16,7 @@ import {
   safeWriteFileWithBackup,
 } from '../security/index.js';
 import { validateContentJson, validateManifest } from '../validators/index.js';
+import { compileConfigSchema } from './config-schema-builder.js';
 
 export const CONTENT_PATCHER_FORMAT_VERSION = '2.0.0';
 
@@ -196,8 +197,10 @@ export function compileProjectToContentJson(project: SdvProjectFile): ContentJso
     }
   }
 
+  const hasConfig = project.configOptions !== undefined && project.configOptions.length > 0;
   return validateContentJson({
     Format: CONTENT_PATCHER_FORMAT_VERSION,
+    ...(hasConfig ? { ConfigSchema: compileConfigSchema(project.configOptions) } : {}),
     Changes: changes,
   });
 }

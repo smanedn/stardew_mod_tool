@@ -9,22 +9,25 @@ import type {
   DialogueEditEntry,
   LinkedAssetEntry,
   ObjectEditEntry,
+  ProjectConfigOption,
   RetextureEditEntry,
   SdvProjectEdit,
   SdvProjectFile,
   SdvProjectMetadata,
 } from '../data/models/index.js';
 import {
+  ConfigEditor,
   CropWizard,
   DialogueEditor,
   ManifestEditor,
   ObjectCreator,
+  PixelEditor,
   ProjectDashboard,
   RetexturePatcher,
 } from './components/index.js';
 import './styles.css';
 
-type EditorTab = 'manifest' | 'objects' | 'crops' | 'retexture' | 'dialogue';
+type EditorTab = 'manifest' | 'objects' | 'crops' | 'retexture' | 'dialogue' | 'config' | 'pixel';
 
 const RECENT_STORAGE_KEY = 'sdv_mod_creator_recent_projects';
 
@@ -114,6 +117,16 @@ export function App(): React.JSX.Element {
   const dialogueEdits: readonly DialogueEditEntry[] =
     activeProject?.edits.filter((e): e is DialogueEditEntry => e.kind === 'dialogue') ?? [];
 
+  const handleConfigChange = (configOptions: readonly ProjectConfigOption[]): void => {
+    if (activeProject !== null) {
+      openAndRememberProject({
+        ...activeProject,
+        updatedAt: new Date().toISOString(),
+        configOptions,
+      });
+    }
+  };
+
   const handleAddRetexture = (entry: RetextureEditEntry, newAsset?: LinkedAssetEntry): void => {
     if (activeProject === null) {
       return;
@@ -155,7 +168,9 @@ export function App(): React.JSX.Element {
       ) : (
         <>
           <nav className="workspace-tabs">
-            {(['manifest', 'objects', 'crops', 'retexture', 'dialogue'] as const).map((tab) => (
+            {(
+              ['manifest', 'objects', 'crops', 'retexture', 'dialogue', 'config', 'pixel'] as const
+            ).map((tab) => (
               <button
                 key={tab}
                 type="button"
@@ -163,14 +178,18 @@ export function App(): React.JSX.Element {
                 onClick={() => { setActiveTab(tab); }}
               >
                 {tab === 'manifest'
-                  ? 'Manifest & Config'
+                  ? 'Manifest'
                   : tab === 'objects'
-                    ? 'Custom Objects'
+                    ? 'Objects'
                     : tab === 'crops'
-                      ? 'Crops & Seeds'
+                      ? 'Crops'
                       : tab === 'retexture'
                         ? 'Retexture'
-                        : 'NPC Dialogue'}
+                        : tab === 'dialogue'
+                          ? 'Dialogue'
+                          : tab === 'config'
+                            ? 'Config (GMCM)'
+                            : 'Pixel Editor'}
               </button>
             ))}
           </nav>
@@ -233,6 +252,13 @@ export function App(): React.JSX.Element {
               }}
             />
           )}
+          {activeTab === 'config' && (
+            <ConfigEditor
+              options={activeProject.configOptions ?? []}
+              onChange={handleConfigChange}
+            />
+          )}
+          {activeTab === 'pixel' && <PixelEditor />}
         </>
       )}
     </main>

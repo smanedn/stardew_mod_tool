@@ -92,6 +92,22 @@ const DialogueEditSchema = z
   })
   .strict();
 
+const ProjectConfigOptionSchema = z
+  .object({
+    id: z.string().min(1),
+    key: z
+      .string()
+      .trim()
+      .min(1)
+      .regex(/^[A-Za-z0-9_]+$/),
+    optionType: z.enum(['toggle', 'choice', 'number']),
+    defaultValue: z.string(),
+    allowValues: z.string().optional(),
+    description: z.string().optional(),
+    section: z.string().optional(),
+  })
+  .strict();
+
 export const SdvProjectSchema: z.ZodType<SdvProjectFile> = z
   .object({
     formatVersion: z.number().int().min(1),
@@ -106,6 +122,7 @@ export const SdvProjectSchema: z.ZodType<SdvProjectFile> = z
         DialogueEditSchema,
       ]),
     ),
+    configOptions: z.array(ProjectConfigOptionSchema).optional(),
   })
   .strict();
 

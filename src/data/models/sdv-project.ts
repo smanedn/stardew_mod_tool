@@ -76,6 +76,16 @@ export type SdvProjectEdit =
   | RetextureEditEntry
   | DialogueEditEntry;
 
+export interface ProjectConfigOption {
+  readonly id: string;
+  readonly key: string;
+  readonly optionType: 'toggle' | 'choice' | 'number';
+  readonly defaultValue: string;
+  readonly allowValues?: string;
+  readonly description?: string;
+  readonly section?: string;
+}
+
 /**
  * Human-readable .sdvproj project file structure storing work state prior to SMAPI compilation.
  */
@@ -85,4 +95,5 @@ export interface SdvProjectFile {
   readonly metadata: SdvProjectMetadata;
   readonly assets: readonly LinkedAssetEntry[];
   readonly edits: readonly SdvProjectEdit[];
+  readonly configOptions?: readonly ProjectConfigOption[];
 }

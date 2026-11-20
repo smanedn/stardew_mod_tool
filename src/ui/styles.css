@@ -292,3 +292,26 @@ body {
   flex-wrap: wrap;
   gap: 0.4rem;
 }
+
+.swatch-btn {
+  width: 24px;
+  height: 24px;
+  border: 2px solid #cbd5e1;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.pixel-canvas-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 1rem;
+  background-color: #f3f4f6;
+  border-radius: 8px;
+}
+
+.pixel-canvas {
+  border: 2px solid #5a381e;
+  background-color: #ffffff;
+  cursor: crosshair;
+  image-rendering: pixelated;
+}
