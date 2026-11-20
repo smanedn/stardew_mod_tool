@@ -40,6 +40,7 @@ import {
   ProjectDashboard,
   QuickLaunchPanel,
   RetexturePatcher,
+  type TutorialTargetTab,
 } from './components/index.js';
 import './styles.css';
 
@@ -131,25 +132,6 @@ export function App(): React.JSX.Element {
     }
   }, [theme]);
 
-  const handleDeleteProject = (uniqueId: string): void => {
-    const updated = recentProjects.filter((item) => item.metadata.uniqueId !== uniqueId);
-    setRecentProjects(updated);
-    saveRecentProjects(updated);
-    if (activeProject?.metadata.uniqueId === uniqueId) {
-      setActiveProject(null);
-      setHistory(createUndoRedoHistory<SdvProjectFile>());
-    }
-  };
-
-  const dismissOnboarding = (): void => {
-    setShowOnboarding(false);
-    try {
-      localStorage.setItem(ONBOARDING_STORAGE_KEY, 'true');
-    } catch {
-      // Ignore storage errors.
-    }
-  };
-
   const persistActiveProject = useCallback(
     (project: SdvProjectFile): void => {
       const updated = [
@@ -167,6 +149,16 @@ export function App(): React.JSX.Element {
   const openAndRememberProject = (project: SdvProjectFile): void => {
     setHistory(createUndoRedoHistory<SdvProjectFile>());
     persistActiveProject(project);
+  };
+
+  const handleDeleteProject = (uniqueId: string): void => {
+    const updated = recentProjects.filter((item) => item.metadata.uniqueId !== uniqueId);
+    setRecentProjects(updated);
+    saveRecentProjects(updated);
+    if (activeProject?.metadata.uniqueId === uniqueId) {
+      setActiveProject(null);
+      setHistory(createUndoRedoHistory<SdvProjectFile>());
+    }
   };
 
   const applyProjectChange = (label: string, nextProject: SdvProjectFile): void => {
@@ -240,13 +232,22 @@ export function App(): React.JSX.Element {
     };
   }, [activeProject]);
 
+  const dismissOnboarding = (): void => {
+    setShowOnboarding(false);
+    try {
+      localStorage.setItem(ONBOARDING_STORAGE_KEY, 'true');
+    } catch {
+      // Ignore storage errors.
+    }
+  };
+
   const handleCreateTemplate = (templateId: ProjectTemplateId): void => {
     const label = `${templateId.charAt(0).toUpperCase()}${templateId.slice(1)}`;
     const project = createProjectFromTemplate(templateId, {
       name: `My ${label} Mod`,
       author: 'Farmer',
       version: '1.0.0',
-      description: 'Created with Stardew Valley Easy Mod Creator.',
+      description: 'Created with Stardew Valley Mod Creator - by Smane.',
       uniqueId: `Farmer.My${label}Mod`,
     });
     openAndRememberProject(project);
@@ -285,15 +286,6 @@ export function App(): React.JSX.Element {
     }
   };
 
-  const objectEdits: readonly ObjectEditEntry[] =
-    activeProject?.edits.filter((e): e is ObjectEditEntry => e.kind === 'object') ?? [];
-  const cropEdits: readonly CropEditEntry[] =
-    activeProject?.edits.filter((e): e is CropEditEntry => e.kind === 'crop') ?? [];
-  const retextureEdits: readonly RetextureEditEntry[] =
-    activeProject?.edits.filter((e): e is RetextureEditEntry => e.kind === 'retexture') ?? [];
-  const dialogueEdits: readonly DialogueEditEntry[] =
-    activeProject?.edits.filter((e): e is DialogueEditEntry => e.kind === 'dialogue') ?? [];
-
   const handleConfigChange = (configOptions: readonly ProjectConfigOption[]): void => {
     if (activeProject !== null) {
       applyProjectChange('Update Config', {
@@ -326,6 +318,76 @@ export function App(): React.JSX.Element {
     });
   };
 
+  const handleStartTutorialMod = (): void => {
+    const project = createProjectFromTemplate('object', {
+      name: 'Golden Starberry',
+      author: 'Smane',
+      version: '1.0.0',
+      description: 'Adds a Golden Starberry item and Abigail dialogue.',
+      uniqueId: 'Smane.GoldenStarberry',
+    });
+    openAndRememberProject({ ...project, edits: [] });
+  };
+
+  const handleAddTutorialObject = (): void => {
+    if (activeProject === null) {
+      return;
+    }
+    const itemId = `${activeProject.metadata.uniqueId}_GoldenStarberry`;
+    const alreadyExists = activeProject.edits.some(
+      (e) => e.kind === 'object' && e.itemId === itemId,
+    );
+    if (!alreadyExists) {
+      updateProjectEdits([
+        ...activeProject.edits,
+        {
+          kind: 'object',
+          id: `tut-obj-${String(Date.now())}`,
+          itemId,
+          displayName: 'Golden Starberry',
+          description: 'A sweet, glowing berry grown with Stardew Mod Creator.',
+          price: 250,
+          edibility: 40,
+          category: -79,
+        },
+      ]);
+    }
+  };
+
+  const handleAddTutorialDialogue = (): void => {
+    if (activeProject === null) {
+      return;
+    }
+    const alreadyExists = activeProject.edits.some(
+      (e) => e.kind === 'dialogue' && e.npcName === 'Abigail',
+    );
+    if (!alreadyExists) {
+      updateProjectEdits([
+        ...activeProject.edits,
+        {
+          kind: 'dialogue',
+          id: `tut-dlg-${String(Date.now())}`,
+          npcName: 'Abigail',
+          dialogueKey: 'Mon',
+          text: 'Hey @! Have you tasted the Golden Starberry yet?$h',
+        },
+      ]);
+    }
+  };
+
+  const handleNavigateTutorialTab = (tab: TutorialTargetTab): void => {
+    setActiveTab(tab);
+  };
+
+  const objectEdits: readonly ObjectEditEntry[] =
+    activeProject?.edits.filter((e): e is ObjectEditEntry => e.kind === 'object') ?? [];
+  const cropEdits: readonly CropEditEntry[] =
+    activeProject?.edits.filter((e): e is CropEditEntry => e.kind === 'crop') ?? [];
+  const retextureEdits: readonly RetextureEditEntry[] =
+    activeProject?.edits.filter((e): e is RetextureEditEntry => e.kind === 'retexture') ?? [];
+  const dialogueEdits: readonly DialogueEditEntry[] =
+    activeProject?.edits.filter((e): e is DialogueEditEntry => e.kind === 'dialogue') ?? [];
+
   return (
     <main className="app-shell">
       <header className="app-header">
@@ -341,7 +403,7 @@ export function App(): React.JSX.Element {
           >
             {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
           </button>
-          {activeProject === null && !showOnboarding && (
+          {!showOnboarding && (
             <button
               type="button"
               className="secondary-btn"
@@ -396,26 +458,26 @@ export function App(): React.JSX.Element {
         </div>
       </header>
 
+      {showOnboarding && (
+        <OnboardingTutorial
+          activeProject={activeProject}
+          onComplete={dismissOnboarding}
+          onStartTutorialMod={handleStartTutorialMod}
+          onNavigateTab={handleNavigateTutorialTab}
+          onAddTutorialObject={handleAddTutorialObject}
+          onAddTutorialDialogue={handleAddTutorialDialogue}
+        />
+      )}
+
       {activeProject === null ? (
-        <>
-          {showOnboarding && (
-            <OnboardingTutorial
-              onComplete={dismissOnboarding}
-              onStartQuickMod={() => {
-                dismissOnboarding();
-                handleCreateTemplate('object');
-              }}
-            />
-          )}
-          <ProjectDashboard
-            recentProjects={recentProjects}
-            onCreateFromTemplate={handleCreateTemplate}
-            onOpenRecent={openAndRememberProject}
-            onDeleteRecent={handleDeleteProject}
-            onImportManifest={handleImportManifest}
-            importError={importError}
-          />
-        </>
+        <ProjectDashboard
+          recentProjects={recentProjects}
+          onCreateFromTemplate={handleCreateTemplate}
+          onOpenRecent={openAndRememberProject}
+          onDeleteRecent={handleDeleteProject}
+          onImportManifest={handleImportManifest}
+          importError={importError}
+        />
       ) : (
         <>
           <nav className="workspace-tabs">

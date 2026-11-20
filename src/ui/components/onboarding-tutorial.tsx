@@ -1,77 +1,128 @@
 import { useState } from 'react';
+import {
+  compileProjectToContentJson,
+  compileProjectToManifest,
+  serializeCleanJson,
+} from '../../core/engine/browser-compiler.js';
+import type { SdvProjectFile } from '../../data/models/index.js';
+
+export type TutorialTargetTab = 'manifest' | 'objects' | 'dialogue' | 'preview';
 
 export interface OnboardingTutorialProps {
+  readonly activeProject: SdvProjectFile | null;
   readonly onComplete: () => void;
-  readonly onStartQuickMod: () => void;
+  readonly onStartTutorialMod: () => void;
+  readonly onNavigateTab: (tab: TutorialTargetTab) => void;
+  readonly onAddTutorialObject: () => void;
+  readonly onAddTutorialDialogue: () => void;
 }
 
 interface TutorialStep {
   readonly icon: string;
-  readonly badge: string;
   readonly title: string;
   readonly summary: string;
-  readonly tip: string;
-  readonly previewTag: string;
+  readonly actionLabel: string;
 }
 
 const TUTORIAL_STEPS: readonly TutorialStep[] = [
   {
     icon: '🌱',
-    badge: '30 sec',
-    title: 'Step 1: Pick a Template',
+    title: 'Step 1: Create Your Starter Mod Project',
     summary:
-      'Start from New Object, New Crop & Seed, Retexture Sprite, or NPC Dialogue on the Dashboard.',
-    tip: 'You can also import an existing manifest.json to edit an existing Content Patcher pack.',
-    previewTag: 'Templates: Object • Crop • Retexture • Dialogue',
+      'Click "Start Mod Project" to initialize "Golden Starberry" and open the editor.',
+    actionLabel: 'Start Mod Project →',
   },
   {
     icon: '📜',
-    badge: '30 sec',
     title: 'Step 2: Configure Manifest & UniqueID',
     summary:
-      'Enter your Mod Name and Author, then click Auto-Generate to create a valid SMAPI UniqueID.',
-    tip: 'Use +Patch / +Minor buttons to increment Semantic Versioning safely.',
-    previewTag: 'Author.MyFirstMod  v1.0.0',
+      'Look at the Manifest tab below: your Name, Author, UniqueID, and SemVer are validated live.',
+    actionLabel: 'Next: Add Custom Object →',
   },
   {
-    icon: '🎨',
-    badge: '45 sec',
-    title: 'Step 3: Build & Preview Live',
+    icon: '🍓',
+    title: 'Step 3: Add a Custom Stardew Item',
     summary:
-      'Create custom items, crops, sprites, or dialogues with live in-game previews in every tab.',
-    tip: 'All edits support Ctrl+Z / Ctrl+Y Undo & Redo and silent 2-minute crash recovery.',
-    previewTag: 'Live Tooltip • Portrait Box • Pixel Grid',
+      'In Objects: click below to add "Golden Starberry" (250g, +100 Energy) with a live tooltip.',
+    actionLabel: 'Add Golden Starberry & Next →',
+  },
+  {
+    icon: '💬',
+    title: 'Step 4: Add Villager Dialogue',
+    summary:
+      'In Dialogue: give Abigail a custom line using @ (player name) and $h (happy portrait).',
+    actionLabel: 'Add Abigail Dialogue & Preview →',
   },
   {
     icon: '🚀',
-    badge: '15 sec',
-    title: 'Step 4: Test & Export to Nexus Mods',
+    title: 'Step 5: Your Working Mod is Ready!',
     summary:
-      'Use Test in Game to monitor SMAPI logs, then export to Mods/ or package a [CP] .zip.',
-    tip: 'Every overwrite automatically creates a safety snapshot in .backup/.',
-    previewTag: '[CP] MyFirstMod.zip Ready!',
+      'Preview your item & dialogue below, then download manifest.json & content.json!',
+    actionLabel: 'Finish Tutorial ✓',
   },
 ];
+
+function triggerJsonDownload(filename: string, content: string): void {
+  const blob = new Blob([content], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
 
 export function OnboardingTutorial(props: OnboardingTutorialProps): React.JSX.Element {
   const [stepIndex, setStepIndex] = useState<number>(0);
   const currentStep = TUTORIAL_STEPS[stepIndex] ?? TUTORIAL_STEPS[0];
-  const isLast = stepIndex >= TUTORIAL_STEPS.length - 1;
   const progressPercent = ((stepIndex + 1) / TUTORIAL_STEPS.length) * 100;
 
   if (currentStep === undefined) {
     return <></>;
   }
 
+  const handleStepAction = (): void => {
+    if (stepIndex === 0) {
+      props.onStartTutorialMod();
+      props.onNavigateTab('manifest');
+      setStepIndex(1);
+    } else if (stepIndex === 1) {
+      props.onNavigateTab('objects');
+      setStepIndex(2);
+    } else if (stepIndex === 2) {
+      props.onAddTutorialObject();
+      props.onNavigateTab('dialogue');
+      setStepIndex(3);
+    } else if (stepIndex === 3) {
+      props.onAddTutorialDialogue();
+      props.onNavigateTab('preview');
+      setStepIndex(4);
+    } else {
+      props.onComplete();
+    }
+  };
+
+  const handleDownloadModFiles = (): void => {
+    if (props.activeProject === null) {
+      return;
+    }
+    const manifestText = serializeCleanJson(compileProjectToManifest(props.activeProject));
+    const contentText = serializeCleanJson(compileProjectToContentJson(props.activeProject));
+    triggerJsonDownload('manifest.json', manifestText);
+    triggerJsonDownload('content.json', contentText);
+  };
+
   return (
     <section className="onboarding-banner">
       <div className="module-toolbar">
         <div className="inline-row">
-          <span className="template-badge">Create Your First Mod in 2 Minutes</span>
-          <span className="muted-text">{currentStep.badge}</span>
+          <span className="template-badge">Interactive Mod Tutorial</span>
+          <span className="muted-text">
+            Step {String(stepIndex + 1)} of {String(TUTORIAL_STEPS.length)}
+          </span>
         </div>
         <button type="button" className="secondary-btn" onClick={props.onComplete}>
-          Dismiss
+          Close Tutorial
         </button>
       </div>
 
@@ -79,51 +130,23 @@ export function OnboardingTutorial(props: OnboardingTutorialProps): React.JSX.El
         <div className="tutorial-progress-fill" style={{ width: `${String(progressPercent)}%` }} />
       </div>
 
-      <div className="tutorial-dots">
-        {TUTORIAL_STEPS.map((step, idx) => (
-          <button
-            key={step.title}
-            type="button"
-            className={idx === stepIndex ? 'tutorial-dot active' : 'tutorial-dot'}
-            onClick={() => { setStepIndex(idx); }}
-          >
-            {step.icon} Step {String(idx + 1)}
-          </button>
-        ))}
-      </div>
-
       <div key={stepIndex} className="tutorial-step-card">
         <div className="tutorial-icon-circle">{currentStep.icon}</div>
         <div className="tutorial-step-body">
           <h3>{currentStep.title}</h3>
           <p>{currentStep.summary}</p>
-          <div className="tutorial-preview-pill">{currentStep.previewTag}</div>
-          <p className="muted-text">Tip: {currentStep.tip}</p>
         </div>
       </div>
 
       <div className="inline-row">
-        <button
-          type="button"
-          className="secondary-btn"
-          disabled={stepIndex === 0}
-          onClick={() => { setStepIndex(Math.max(0, stepIndex - 1)); }}
-        >
-          Back
-        </button>
-        {!isLast ? (
-          <button
-            type="button"
-            className="launch-btn"
-            onClick={() => { setStepIndex(stepIndex + 1); }}
-          >
-            Next Step
-          </button>
-        ) : (
-          <button type="button" className="launch-btn pulse-btn" onClick={props.onStartQuickMod}>
-            Create My First Mod Now
+        {stepIndex === 4 && props.activeProject !== null && (
+          <button type="button" className="secondary-btn" onClick={handleDownloadModFiles}>
+            Download manifest.json &amp; content.json
           </button>
         )}
+        <button type="button" className="launch-btn pulse-btn" onClick={handleStepAction}>
+          {currentStep.actionLabel}
+        </button>
       </div>
     </section>
   );
