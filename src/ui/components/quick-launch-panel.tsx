@@ -1,21 +1,39 @@
 import { useState } from 'react';
+import {
+  compileProjectToContentJson,
+  compileProjectToManifest,
+} from '../../core/engine/browser-compiler.js';
 import { type SmapiLogEntry, parseSmapiLogLine } from '../../core/engine/smapi-log-parser.js';
+import type { SdvProjectFile } from '../../data/models/index.js';
 
 export interface QuickLaunchPanelProps {
-  readonly modUniqueId: string;
-  readonly modName: string;
+  readonly project: SdvProjectFile;
   readonly onLaunchSmapi?: (
     onLog: (entry: SmapiLogEntry) => void,
   ) => Promise<void> | void;
 }
 
-function buildSampleSmapiLines(uniqueId: string, modName: string): readonly string[] {
-  return [
+function buildValidatedSmapiLines(project: SdvProjectFile): readonly string[] {
+  const { uniqueId, name } = project.metadata;
+  const lines: string[] = [
     '[21:45:01 INFO SMAPI] SMAPI 4.1.10 with Stardew Valley 1.6.15',
-    `[21:45:02 INFO Content Patcher] Loaded content pack '${modName}' (${uniqueId})`,
-    `[21:45:03 ERROR Content Patcher] ${uniqueId}: Missing asset 'assets/example.png'.`,
-    '[21:45:04 INFO SMAPI] Type "help" for help, or "help <cmd>" for a command.',
+    `[21:45:02 INFO Content Patcher] Loaded content pack '${name}' (${uniqueId})`,
   ];
+
+  try {
+    compileProjectToManifest(project);
+    const content = compileProjectToContentJson(project);
+    const patchCount = String(content.Changes.length);
+    lines.push(
+      `[21:45:03 INFO Content Patcher] ${uniqueId}: Applied ${patchCount} patch(es) cleanly.`,
+    );
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Validation failed.';
+    lines.push(`[21:45:03 ERROR Content Patcher] ${uniqueId}: ${message}`);
+  }
+
+  lines.push('[21:45:04 INFO SMAPI] Type "help" for help, or "help <cmd>" for a command.');
+  return lines;
 }
 
 function getLogLineClass(entry: SmapiLogEntry): string {
@@ -34,6 +52,7 @@ function getLogLineClass(entry: SmapiLogEntry): string {
 export function QuickLaunchPanel(props: QuickLaunchPanelProps): React.JSX.Element {
   const [logs, setLogs] = useState<readonly SmapiLogEntry[]>([]);
   const [statusText, setStatusText] = useState<string>('Idle');
+  const { uniqueId, name } = props.project.metadata;
 
   const appendEntry = (entry: SmapiLogEntry): void => {
     setLogs((prev) => [...prev, entry]);
@@ -49,10 +68,9 @@ export function QuickLaunchPanel(props: QuickLaunchPanelProps): React.JSX.Elemen
       return;
     }
 
-    setStatusText('Simulated SMAPI Log (Browser Preview)');
-    const sampleLines = buildSampleSmapiLines(props.modUniqueId, props.modName);
-    for (const line of sampleLines) {
-      appendEntry(parseSmapiLogLine(line, props.modUniqueId, props.modName));
+    setStatusText('Simulated SMAPI Log (Live Project Check)');
+    for (const line of buildValidatedSmapiLines(props.project)) {
+      appendEntry(parseSmapiLogLine(line, uniqueId, name));
     }
   };
 

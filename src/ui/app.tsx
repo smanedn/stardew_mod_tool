@@ -605,12 +605,7 @@ export function App(): React.JSX.Element {
               {activeTab === 'preview' && (
                 <InGamePreview objects={objectEdits} dialogues={dialogueEdits} />
               )}
-              {activeTab === 'launch' && (
-                <QuickLaunchPanel
-                  modUniqueId={activeProject.metadata.uniqueId}
-                  modName={activeProject.metadata.name}
-                />
-              )}
+              {activeTab === 'launch' && <QuickLaunchPanel project={activeProject} />}
             </div>
             {showInspector && <CodeInspector project={activeProject} />}
           </div>
