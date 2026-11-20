@@ -5,6 +5,7 @@ import type {
   CropEditEntry,
   DialogueEditEntry,
   EventEditEntry,
+  FishEditEntry,
   FurnitureEditEntry,
   GiftTasteEditEntry,
   LinkedAssetEntry,
@@ -346,6 +347,51 @@ function compileFurniturePatch(edit: FurnitureEditEntry): ContentPatch {
   };
 }
 
+const FISH_LOCATION_MAP: Readonly<Record<FishEditEntry['waterLocation'], string>> = {
+  River: 'Town',
+  Ocean: 'Beach',
+  Lake: 'Mountain',
+};
+
+function compileFishPatches(edit: FishEditEntry): readonly ContentPatch[] {
+  const seasonsStr = edit.seasons.map((s) => s.toLowerCase()).join(' ');
+  const fishValue = [
+    edit.displayName,
+    String(edit.difficulty),
+    edit.behavior,
+    String(edit.minSize),
+    String(edit.maxSize),
+    '600 2600',
+    seasonsStr,
+    edit.weather,
+    '688 .05',
+    '4',
+    '.2',
+    '.1',
+    '0',
+  ].join('/');
+
+  const locationKey = FISH_LOCATION_MAP[edit.waterLocation];
+  return [
+    {
+      Action: 'EditData',
+      LogName: `Add Fish: ${edit.displayName}`,
+      Target: 'Data/Fish',
+      Entries: { [edit.fishId]: fishValue },
+    },
+    {
+      Action: 'EditData',
+      LogName: `Add Fish Spawn: ${edit.displayName}`,
+      Target: 'Data/Locations',
+      Fields: {
+        [locationKey]: {
+          Fish: [{ Id: edit.fishId, ItemId: `(O)${edit.fishId}`, Season: seasonsStr }],
+        },
+      },
+    },
+  ];
+}
+
 function compileSingleEdit(
   edit: SdvProjectFile['edits'][number],
   assetsById: ReadonlyMap<string, LinkedAssetEntry>,
@@ -375,6 +421,8 @@ function compileSingleEdit(
       return [compileWeaponPatch(edit)];
     case 'furniture':
       return [compileFurniturePatch(edit)];
+    case 'fish':
+      return compileFishPatches(edit);
   }
 }
 

@@ -164,6 +164,25 @@ export interface FurnitureEditEntry {
   readonly assetId?: string;
 }
 
+export type FishBehaviorId = 'smooth' | 'dart' | 'sinker' | 'floater';
+export type FishWeatherId = 'sunny' | 'rainy' | 'both';
+export type FishLocationId = 'River' | 'Ocean' | 'Lake';
+
+export interface FishEditEntry {
+  readonly kind: 'fish';
+  readonly id: string;
+  readonly fishId: string;
+  readonly displayName: string;
+  readonly minSize: number;
+  readonly maxSize: number;
+  readonly difficulty: number;
+  readonly behavior: FishBehaviorId;
+  readonly seasons: readonly string[];
+  readonly weather: FishWeatherId;
+  readonly waterLocation: FishLocationId;
+  readonly price: number;
+}
+
 export type SdvProjectEdit =
   | ObjectEditEntry
   | CropEditEntry
@@ -175,7 +194,8 @@ export type SdvProjectEdit =
   | EventEditEntry
   | AnimalEditEntry
   | WeaponEditEntry
-  | FurnitureEditEntry;
+  | FurnitureEditEntry
+  | FishEditEntry;
 
 export interface ProjectConfigOption {
   readonly id: string;

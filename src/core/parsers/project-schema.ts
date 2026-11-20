@@ -183,6 +183,23 @@ const FurnitureEditSchema = z
   })
   .strict();
 
+const FishEditSchema = z
+  .object({
+    kind: z.literal('fish'),
+    id: z.string().min(1),
+    fishId: z.string().min(1),
+    displayName: z.string().min(1),
+    minSize: z.number().int().min(1),
+    maxSize: z.number().int().min(1),
+    difficulty: z.number().int().min(5).max(110),
+    behavior: z.enum(['smooth', 'dart', 'sinker', 'floater']),
+    seasons: z.array(z.string().min(1)).min(1),
+    weather: z.enum(['sunny', 'rainy', 'both']),
+    waterLocation: z.enum(['River', 'Ocean', 'Lake']),
+    price: z.number().int().min(0),
+  })
+  .strict();
+
 const ProjectConfigOptionSchema = z
   .object({
     id: z.string().min(1),
@@ -218,6 +235,7 @@ export const SdvProjectSchema: z.ZodType<SdvProjectFile> = z
         AnimalEditSchema,
         WeaponEditSchema,
         FurnitureEditSchema,
+        FishEditSchema,
       ]),
     ),
     configOptions: z.array(ProjectConfigOptionSchema).optional(),

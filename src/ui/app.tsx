@@ -21,6 +21,7 @@ import type {
   CropEditEntry,
   DialogueEditEntry,
   EventEditEntry,
+  FishEditEntry,
   FurnitureEditEntry,
   GiftTasteEditEntry,
   LinkedAssetEntry,
@@ -42,6 +43,7 @@ import {
   CropWizard,
   DialogueEditor,
   EventBuilder,
+  FishEditor,
   FurnitureEditor,
   GiftTastesEditor,
   I18nEditor,
@@ -70,6 +72,7 @@ type EditorTab =
   | 'events'
   | 'animals'
   | 'furniture'
+  | 'fish'
   | 'config'
   | 'pixel'
   | 'i18n'
@@ -522,6 +525,8 @@ export function App(): React.JSX.Element {
     activeProject?.edits.filter((e): e is WeaponEditEntry => e.kind === 'weapon') ?? [];
   const furnitureEdits: readonly FurnitureEditEntry[] =
     activeProject?.edits.filter((e): e is FurnitureEditEntry => e.kind === 'furniture') ?? [];
+  const fishEdits: readonly FishEditEntry[] =
+    activeProject?.edits.filter((e): e is FishEditEntry => e.kind === 'fish') ?? [];
 
   const handleSavePixelSprite = (newAsset: LinkedAssetEntry): void => {
     if (activeProject === null) {
@@ -541,7 +546,7 @@ export function App(): React.JSX.Element {
           <img src="/logo.png" alt="SVMC Logo" className="hero-logo" />
           <div>
             <h1>Stardew Valley Mod Creator - by Smane</h1>
-            <p className="app-subtitle">Cozy Content Patcher Studio • v0.5.1</p>
+            <p className="app-subtitle">Cozy Content Patcher Studio • v0.5.2</p>
           </div>
         </div>
         <div className="inline-row">
@@ -689,6 +694,7 @@ export function App(): React.JSX.Element {
                   'events',
                   'animals',
                   'furniture',
+                  'fish',
                   'retexture',
                   'pixel',
                   'preview',
@@ -706,6 +712,7 @@ export function App(): React.JSX.Element {
                   'events',
                   'animals',
                   'furniture',
+                  'fish',
                   'retexture',
                   'pixel',
                   'preview',
@@ -738,17 +745,19 @@ export function App(): React.JSX.Element {
                                 ? '8. Animals & Weapons'
                                 : tab === 'furniture'
                                   ? '9. Furniture'
-                                  : tab === 'retexture'
-                                    ? '10. Sprites'
-                                    : tab === 'pixel'
-                                      ? '11. Draw Sprite'
-                                      : tab === 'preview'
-                                        ? '12. Preview & Export'
-                                        : tab === 'config'
-                                          ? 'Config (GMCM)'
-                                          : tab === 'i18n'
-                                            ? 'Translations'
-                                            : 'Test in Game'}
+                                  : tab === 'fish'
+                                    ? '10. Fish'
+                                    : tab === 'retexture'
+                                      ? '11. Sprites'
+                                      : tab === 'pixel'
+                                        ? '12. Draw Sprite'
+                                        : tab === 'preview'
+                                          ? '13. Preview & Export'
+                                          : tab === 'config'
+                                            ? 'Config (GMCM)'
+                                            : tab === 'i18n'
+                                              ? 'Translations'
+                                              : 'Test in Game'}
               </button>
             ))}
           </nav>
@@ -921,6 +930,21 @@ export function App(): React.JSX.Element {
                     );
                   }}
                   onRemoveFurniture={(id) => {
+                    updateProjectEdits(activeProject.edits.filter((item) => item.id !== id));
+                  }}
+                />
+              )}
+              {activeTab === 'fish' && (
+                <FishEditor
+                  uniqueId={activeProject.metadata.uniqueId}
+                  fishList={fishEdits}
+                  onAddFish={(entry) => { updateProjectEdits([...activeProject.edits, entry]); }}
+                  onUpdateFish={(entry) => {
+                    updateProjectEdits(
+                      activeProject.edits.map((item) => (item.id === entry.id ? entry : item)),
+                    );
+                  }}
+                  onRemoveFish={(id) => {
                     updateProjectEdits(activeProject.edits.filter((item) => item.id !== id));
                   }}
                 />
