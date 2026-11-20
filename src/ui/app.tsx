@@ -15,7 +15,7 @@ import {
   redoCommand,
   undoCommand,
 } from '../core/engine/undo-redo.js';
-import { parseProjectJson } from '../core/parsers/project-file.js';
+import { parseProjectJson } from '../core/parsers/project-schema.js';
 import type {
   AnimalEditEntry,
   CropEditEntry,
