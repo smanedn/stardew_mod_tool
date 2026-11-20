@@ -1,9 +1,19 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   type ProjectTemplateId,
   createProjectFromTemplate,
   importManifestJsonToProject,
 } from '../core/engine/project-templates.js';
+import {
+  type UndoRedoHistory,
+  canRedo,
+  canUndo,
+  createStateChangeCommand,
+  createUndoRedoHistory,
+  executeCommand,
+  redoCommand,
+  undoCommand,
+} from '../core/engine/undo-redo.js';
 import type {
   CropEditEntry,
   DialogueEditEntry,
@@ -82,20 +92,86 @@ export function App(): React.JSX.Element {
     loadRecentProjects,
   );
   const [activeProject, setActiveProject] = useState<SdvProjectFile | null>(null);
+  const [history, setHistory] = useState<UndoRedoHistory<SdvProjectFile>>(() =>
+    createUndoRedoHistory<SdvProjectFile>(),
+  );
   const [activeTab, setActiveTab] = useState<EditorTab>('manifest');
   const [showInspector, setShowInspector] = useState<boolean>(false);
   const [importError, setImportError] = useState<string | null>(null);
 
+  const persistActiveProject = useCallback(
+    (project: SdvProjectFile): void => {
+      const updated = [
+        project,
+        ...recentProjects.filter((item) => item.metadata.uniqueId !== project.metadata.uniqueId),
+      ];
+      setRecentProjects(updated);
+      saveRecentProjects(updated);
+      setActiveProject(project);
+      setImportError(null);
+    },
+    [recentProjects],
+  );
+
   const openAndRememberProject = (project: SdvProjectFile): void => {
-    const updated = [
-      project,
-      ...recentProjects.filter((item) => item.metadata.uniqueId !== project.metadata.uniqueId),
-    ];
-    setRecentProjects(updated);
-    saveRecentProjects(updated);
-    setActiveProject(project);
-    setImportError(null);
+    setHistory(createUndoRedoHistory<SdvProjectFile>());
+    persistActiveProject(project);
   };
+
+  const applyProjectChange = (label: string, nextProject: SdvProjectFile): void => {
+    if (activeProject === null) {
+      return;
+    }
+    const result = executeCommand(
+      history,
+      activeProject,
+      createStateChangeCommand(label, activeProject, nextProject),
+    );
+    setHistory(result.history);
+    persistActiveProject(result.state);
+  };
+
+  const handleUndo = useCallback((): void => {
+    if (activeProject === null) {
+      return;
+    }
+    const result = undoCommand(history, activeProject);
+    if (result.changed) {
+      setHistory(result.history);
+      persistActiveProject(result.state);
+    }
+  }, [activeProject, history, persistActiveProject]);
+
+  const handleRedo = useCallback((): void => {
+    if (activeProject === null) {
+      return;
+    }
+    const result = redoCommand(history, activeProject);
+    if (result.changed) {
+      setHistory(result.history);
+      persistActiveProject(result.state);
+    }
+  }, [activeProject, history, persistActiveProject]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (activeProject === null || (!event.ctrlKey && !event.metaKey)) {
+        return;
+      }
+      const key = event.key.toLowerCase();
+      if (key === 'z' && !event.shiftKey) {
+        event.preventDefault();
+        handleUndo();
+      } else if (key === 'y' || (key === 'z' && event.shiftKey)) {
+        event.preventDefault();
+        handleRedo();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return (): void => {
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [activeProject, handleRedo, handleUndo]);
 
   const handleCreateTemplate = (templateId: ProjectTemplateId): void => {
     const label = `${templateId.charAt(0).toUpperCase()}${templateId.slice(1)}`;
@@ -125,7 +201,7 @@ export function App(): React.JSX.Element {
     if (activeProject === null) {
       return;
     }
-    openAndRememberProject({
+    applyProjectChange('Update Edits', {
       ...activeProject,
       updatedAt: new Date().toISOString(),
       edits: nextEdits,
@@ -134,7 +210,11 @@ export function App(): React.JSX.Element {
 
   const handleMetadataChange = (metadata: SdvProjectMetadata): void => {
     if (activeProject !== null) {
-      openAndRememberProject({ ...activeProject, updatedAt: new Date().toISOString(), metadata });
+      applyProjectChange('Update Manifest', {
+        ...activeProject,
+        updatedAt: new Date().toISOString(),
+        metadata,
+      });
     }
   };
 
@@ -149,7 +229,7 @@ export function App(): React.JSX.Element {
 
   const handleConfigChange = (configOptions: readonly ProjectConfigOption[]): void => {
     if (activeProject !== null) {
-      openAndRememberProject({
+      applyProjectChange('Update Config', {
         ...activeProject,
         updatedAt: new Date().toISOString(),
         configOptions,
@@ -159,7 +239,7 @@ export function App(): React.JSX.Element {
 
   const handleTranslationsChange = (translations: ProjectTranslations): void => {
     if (activeProject !== null) {
-      openAndRememberProject({
+      applyProjectChange('Update Translations', {
         ...activeProject,
         updatedAt: new Date().toISOString(),
         translations,
@@ -171,7 +251,7 @@ export function App(): React.JSX.Element {
     if (activeProject === null) {
       return;
     }
-    openAndRememberProject({
+    applyProjectChange('Add Retexture', {
       ...activeProject,
       updatedAt: new Date().toISOString(),
       assets: newAsset !== undefined ? [...activeProject.assets, newAsset] : activeProject.assets,
@@ -188,6 +268,24 @@ export function App(): React.JSX.Element {
         </div>
         {activeProject !== null && (
           <div className="inline-row">
+            <button
+              type="button"
+              className="secondary-btn"
+              disabled={!canUndo(history)}
+              title="Undo (Ctrl+Z)"
+              onClick={handleUndo}
+            >
+              Undo
+            </button>
+            <button
+              type="button"
+              className="secondary-btn"
+              disabled={!canRedo(history)}
+              title="Redo (Ctrl+Y)"
+              onClick={handleRedo}
+            >
+              Redo
+            </button>
             <button
               type="button"
               className={showInspector ? 'season-btn active' : 'secondary-btn'}
