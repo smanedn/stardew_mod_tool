@@ -93,73 +93,104 @@ export function RetexturePatcher(props: RetexturePatcherProps): React.JSX.Elemen
     });
   };
 
+  const previewAreas = calculateEditImageAreas(selectedPreset);
+
   return (
-    <div className="module-container">
-      <div className="module-card">
-        <h3>1. Select Vanilla Sprite from Gallery</h3>
-        <div className="inline-row">
-          {CATEGORIES.map((cat) => (
-            <button
-              key={cat}
-              type="button"
-              className={categoryFilter === cat ? 'season-btn active' : 'season-btn'}
-              onClick={() => { setCategoryFilter(cat); }}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
-        <div className="template-grid">
-          {filteredGallery.map((preset) => (
-            <button
-              key={preset.id}
-              type="button"
-              className={
-                selectedPreset.id === preset.id ? 'template-card selected-card' : 'template-card'
-              }
-              onClick={() => { setSelectedPreset(preset); }}
-            >
-              <span className="template-badge">{preset.category}</span>
-              <strong>{preset.name}</strong>
-              <span className="muted-text">{preset.target} (#{String(preset.spriteIndex)})</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="module-card">
-        <h3>2. Upload Modified Sprite (.png)</h3>
-        <p className="muted-text">
-          Target: <strong>{selectedPreset.target}</strong> ({String(selectedPreset.tileWidth)}x
-          {String(selectedPreset.tileHeight)}px)
-        </p>
-        <label className="file-upload-btn">
-          Upload Replacement PNG
-          <input type="file" accept=".png,image/png" onChange={handleSpriteUpload} hidden />
-        </label>
-        {uploadInfo !== null && <p className="muted-text">{uploadInfo}</p>}
-      </div>
-
-      <div className="module-card">
-        <h3>Active EditImage Patches ({String(props.retextures.length)})</h3>
-        {props.retextures.map((item) => (
-          <div key={item.id} className="recent-item">
-            <div>
-              <strong>{item.target}</strong>
-              <div className="muted-text">
-                FromArea: {JSON.stringify(item.fromArea)} | ToArea: {JSON.stringify(item.toArea)}
-              </div>
-            </div>
-            <button
-              type="button"
-              className="danger-btn"
-              onClick={() => { props.onRemoveRetexture(item.id); }}
-            >
-              Remove
-            </button>
+    <div className="editor-split">
+      <div className="module-container">
+        <div className="module-card">
+          <h3>1. Select Vanilla Sprite from Gallery</h3>
+          <div className="inline-row">
+            {CATEGORIES.map((cat) => (
+              <button
+                key={cat}
+                type="button"
+                className={categoryFilter === cat ? 'season-btn active' : 'season-btn'}
+                onClick={() => { setCategoryFilter(cat); }}
+              >
+                {cat}
+              </button>
+            ))}
           </div>
-        ))}
+          <div className="template-grid">
+            {filteredGallery.map((preset) => (
+              <button
+                key={preset.id}
+                type="button"
+                className={
+                  selectedPreset.id === preset.id ? 'template-card selected-card' : 'template-card'
+                }
+                onClick={() => { setSelectedPreset(preset); }}
+              >
+                <span className="template-badge">{preset.category}</span>
+                <strong>{preset.name}</strong>
+                <span className="muted-text">
+                  {preset.target} (#{String(preset.spriteIndex)})
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="module-card">
+          <h3>2. Upload Modified Sprite (.png)</h3>
+          <p className="muted-text">
+            Target: <strong>{selectedPreset.target}</strong> ({String(selectedPreset.tileWidth)}x
+            {String(selectedPreset.tileHeight)}px)
+          </p>
+          <label className="file-upload-btn">
+            Upload Replacement PNG
+            <input type="file" accept=".png,image/png" onChange={handleSpriteUpload} hidden />
+          </label>
+          {uploadInfo !== null && <p className="muted-text">{uploadInfo}</p>}
+        </div>
+
+        <div className="module-card">
+          <h3>Active EditImage Patches ({String(props.retextures.length)})</h3>
+          {props.retextures.map((item) => (
+            <div key={item.id} className="recent-item">
+              <div>
+                <strong>{item.target}</strong>
+                <div className="muted-text">
+                  FromArea: {JSON.stringify(item.fromArea)} | ToArea: {JSON.stringify(item.toArea)}
+                </div>
+              </div>
+              <button
+                type="button"
+                className="danger-btn"
+                onClick={() => { props.onRemoveRetexture(item.id); }}
+              >
+                Remove
+              </button>
+            </div>
+          ))}
+        </div>
       </div>
+
+      <aside className="json-preview-panel">
+        <h4>Live EditImage Preview</h4>
+        <div className="sdv-tooltip-box">
+          <div className="sdv-tooltip-title">{selectedPreset.name}</div>
+          <div className="sdv-tooltip-category">{selectedPreset.target}</div>
+          <hr className="sdv-divider" />
+          <div className="sdv-price-row">
+            Tile Size: {String(selectedPreset.tileWidth)}x{String(selectedPreset.tileHeight)}px
+          </div>
+        </div>
+        <h4>Calculated Patch Coordinates</h4>
+        <pre>
+          {JSON.stringify(
+            {
+              Action: 'EditImage',
+              Target: selectedPreset.target,
+              FromArea: previewAreas.fromArea,
+              ToArea: previewAreas.toArea,
+            },
+            null,
+            2,
+          )}
+        </pre>
+      </aside>
     </div>
   );
 }

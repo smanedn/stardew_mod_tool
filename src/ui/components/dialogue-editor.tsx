@@ -5,6 +5,7 @@ import {
   DIALOGUE_KEY_PRESETS,
   insertTokenAtCursor,
 } from '../../core/engine/dialogue-tokens.js';
+import { parseDialoguePreview } from '../../core/engine/ui-simulator.js';
 import type { DialogueEditEntry } from '../../data/models/index.js';
 
 export interface DialogueEditorProps {
@@ -117,26 +118,60 @@ export function DialogueEditor(props: DialogueEditorProps): React.JSX.Element {
     });
   };
 
+  const previewDlg = props.dialogues[0];
+  const parsedPreview = previewDlg ? parseDialoguePreview(previewDlg.text) : null;
+
   return (
-    <div className="module-container">
-      <div className="module-toolbar">
-        <h3>NPC Dialogue & Event Editor ({String(props.dialogues.length)})</h3>
-        <button type="button" className="secondary-btn" onClick={handleAdd}>
-          + New Dialogue
-        </button>
+    <div className="editor-split">
+      <div className="module-container">
+        <div className="module-toolbar">
+          <h3>NPC Dialogue & Event Editor ({String(props.dialogues.length)})</h3>
+          <button type="button" className="secondary-btn" onClick={handleAdd}>
+            + New Dialogue
+          </button>
+        </div>
+        {props.dialogues.length === 0 ? (
+          <p className="muted-text">
+            No dialogue edits yet. Click &quot;+ New Dialogue&quot; to start.
+          </p>
+        ) : (
+          props.dialogues.map((entry) => (
+            <DialogueCard
+              key={entry.id}
+              entry={entry}
+              onUpdate={props.onUpdateDialogue}
+              onRemove={props.onRemoveDialogue}
+            />
+          ))
+        )}
       </div>
-      {props.dialogues.length === 0 ? (
-        <p className="muted-text">No dialogue edits yet. Click "+ New Dialogue" to start.</p>
-      ) : (
-        props.dialogues.map((entry) => (
-          <DialogueCard
-            key={entry.id}
-            entry={entry}
-            onUpdate={props.onUpdateDialogue}
-            onRemove={props.onRemoveDialogue}
-          />
-        ))
-      )}
+
+      <aside className="json-preview-panel">
+        <h4>Live Dialogue Preview</h4>
+        {previewDlg !== undefined && parsedPreview !== null ? (
+          <>
+            <div className="sdv-dialogue-box">
+              <div className="sdv-dialogue-text">
+                {parsedPreview.pages.map((page, idx) => (
+                  <p key={idx} className="sdv-dialogue-page">
+                    {page}
+                  </p>
+                ))}
+              </div>
+              <div className="sdv-portrait-panel">
+                <div className="sdv-portrait-frame">
+                  <span className="sdv-portrait-mood">{parsedPreview.mood}</span>
+                </div>
+                <div className="sdv-npc-name">{previewDlg.npcName}</div>
+              </div>
+            </div>
+            <h4>Dialogue JSON</h4>
+            <pre>{JSON.stringify({ [previewDlg.dialogueKey]: previewDlg.text }, null, 2)}</pre>
+          </>
+        ) : (
+          <p className="muted-text">Add a dialogue entry to preview the in-game box.</p>
+        )}
+      </aside>
     </div>
   );
 }

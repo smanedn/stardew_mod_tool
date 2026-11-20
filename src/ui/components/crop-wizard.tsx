@@ -126,29 +126,65 @@ export function CropWizard(props: CropWizardProps): React.JSX.Element {
     });
   };
 
+  const previewCrop = props.crops[0];
+  const previewTotalDays = previewCrop
+    ? previewCrop.daysInPhase.reduce((sum, days) => sum + days, 0)
+    : 0;
+
   return (
-    <div className="module-container">
-      <div className="module-toolbar">
-        <h3>Crops & Seeds Wizard ({String(props.crops.length)})</h3>
-        <button type="button" className="secondary-btn" onClick={handleAdd}>
-          + New Crop
-        </button>
+    <div className="editor-split">
+      <div className="module-container">
+        <div className="module-toolbar">
+          <h3>Crops & Seeds Wizard ({String(props.crops.length)})</h3>
+          <button type="button" className="secondary-btn" onClick={handleAdd}>
+            + New Crop
+          </button>
+        </div>
+        {props.crops.length === 0 ? (
+          <p className="muted-text">
+            No crops yet. Click &quot;+ New Crop&quot; to link seeds and growth stages.
+          </p>
+        ) : (
+          props.crops.map((entry) => (
+            <CropCard
+              key={entry.id}
+              entry={entry}
+              objects={props.objects}
+              onUpdate={props.onUpdateCrop}
+              onRemove={props.onRemoveCrop}
+            />
+          ))
+        )}
       </div>
-      {props.crops.length === 0 ? (
-        <p className="muted-text">
-          No crops yet. Click &quot;+ New Crop&quot; to link seeds and growth stages.
-        </p>
-      ) : (
-        props.crops.map((entry) => (
-          <CropCard
-            key={entry.id}
-            entry={entry}
-            objects={props.objects}
-            onUpdate={props.onUpdateCrop}
-            onRemove={props.onRemoveCrop}
-          />
-        ))
-      )}
+
+      <aside className="json-preview-panel">
+        <h4>Live Crop Growth Preview</h4>
+        {previewCrop !== undefined ? (
+          <>
+            <div className="sdv-tooltip-box">
+              <div className="sdv-tooltip-title">{previewCrop.harvestItemId}</div>
+              <div className="sdv-tooltip-category">
+                Seasons: {previewCrop.seasons.join(', ')}
+              </div>
+              <hr className="sdv-divider" />
+              <div className="token-toolbar">
+                {previewCrop.daysInPhase.map((days, idx) => (
+                  <span key={idx} className="template-badge">
+                    Stage {String(idx + 1)}: {String(days)}d
+                  </span>
+                ))}
+              </div>
+              <div className="sdv-price-row">
+                Total Maturity: {String(previewTotalDays)} days
+              </div>
+            </div>
+            <h4>Data/Crops JSON</h4>
+            <pre>{JSON.stringify(previewCrop, null, 2)}</pre>
+          </>
+        ) : (
+          <p className="muted-text">Add a crop to see its growth timeline & JSON.</p>
+        )}
+      </aside>
     </div>
   );
 }

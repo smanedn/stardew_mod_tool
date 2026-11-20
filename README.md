@@ -1,4 +1,4 @@
-# Stardew Valley Easy Mod Creator Tool
+# Stardew Valley Mod Creator - by Smane
 
 A visual, security-first studio for building **Stardew Valley** *Content Patcher* (SMAPI 4.0+) mods without writing raw JSON by hand.
 

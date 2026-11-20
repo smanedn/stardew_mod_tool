@@ -1,3 +1,7 @@
+import {
+  computeEnergyHealthFromEdibility,
+  formatObjectCategoryLabel,
+} from '../../core/engine/ui-simulator.js';
 import type { ObjectEditEntry, ObjectRecipeConfig } from '../../data/models/index.js';
 
 export interface ObjectCreatorProps {
@@ -174,26 +178,62 @@ export function ObjectCreator(props: ObjectCreatorProps): React.JSX.Element {
     });
   };
 
+  const previewItem = props.objects[0];
+  const restore = previewItem
+    ? computeEnergyHealthFromEdibility(previewItem.edibility)
+    : null;
+
   return (
-    <div className="module-container">
-      <div className="module-toolbar">
-        <h3>Custom Objects Creator ({String(props.objects.length)})</h3>
-        <button type="button" className="secondary-btn" onClick={handleAdd}>
-          + New Object
-        </button>
+    <div className="editor-split">
+      <div className="module-container">
+        <div className="module-toolbar">
+          <h3>Custom Objects Creator ({String(props.objects.length)})</h3>
+          <button type="button" className="secondary-btn" onClick={handleAdd}>
+            + New Object
+          </button>
+        </div>
+        {props.objects.length === 0 ? (
+          <p className="muted-text">
+            No custom objects yet. Click &quot;+ New Object&quot; to create one.
+          </p>
+        ) : (
+          props.objects.map((entry) => (
+            <ObjectCard
+              key={entry.id}
+              entry={entry}
+              onUpdate={props.onUpdateObject}
+              onRemove={props.onRemoveObject}
+            />
+          ))
+        )}
       </div>
-      {props.objects.length === 0 ? (
-        <p className="muted-text">No custom objects yet. Click "+ New Object" to create one.</p>
-      ) : (
-        props.objects.map((entry) => (
-          <ObjectCard
-            key={entry.id}
-            entry={entry}
-            onUpdate={props.onUpdateObject}
-            onRemove={props.onRemoveObject}
-          />
-        ))
-      )}
+
+      <aside className="json-preview-panel">
+        <h4>Live Object Preview</h4>
+        {previewItem !== undefined && restore !== null ? (
+          <>
+            <div className="sdv-tooltip-box">
+              <div className="sdv-tooltip-title">{previewItem.displayName || 'Unnamed'}</div>
+              <div className="sdv-tooltip-category">
+                {formatObjectCategoryLabel(previewItem.category)}
+              </div>
+              <hr className="sdv-divider" />
+              <p className="sdv-tooltip-desc">{previewItem.description || 'No description.'}</p>
+              {restore.edible && (
+                <div className="sdv-restore-row">
+                  <span className="sdv-energy">+{String(restore.energy)} Energy</span>
+                  <span className="sdv-health">+{String(restore.health)} Health</span>
+                </div>
+              )}
+              <div className="sdv-price-row">Sell Price: {String(previewItem.price)}g</div>
+            </div>
+            <h4>Data/Objects JSON</h4>
+            <pre>{JSON.stringify(previewItem, null, 2)}</pre>
+          </>
+        ) : (
+          <p className="muted-text">Add an object to see its live Stardew tooltip & JSON.</p>
+        )}
+      </aside>
     </div>
   );
 }

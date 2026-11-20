@@ -55,10 +55,25 @@ export function PixelEditor(): React.JSX.Element {
   const [activeColor, setActiveColor] = useState<string>('#d97706');
   const [showGrid, setShowGrid] = useState<boolean>(true);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const previewCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
     if (canvasRef.current !== null) {
       drawGridToCanvas(canvasRef.current, grid, showGrid);
+    }
+    const preview = previewCanvasRef.current;
+    const pCtx = preview?.getContext('2d') ?? null;
+    if (preview !== null && pCtx !== null) {
+      pCtx.clearRect(0, 0, preview.width, preview.height);
+      for (let y = 0; y < grid.height; y += 1) {
+        for (let x = 0; x < grid.width; x += 1) {
+          const c = getPixelColor(grid, x, y);
+          if (c !== null) {
+            pCtx.fillStyle = c;
+            pCtx.fillRect(x * 4, y * 4, 4, 4);
+          }
+        }
+      }
     }
   }, [grid, showGrid]);
 
@@ -189,6 +204,15 @@ export function PixelEditor(): React.JSX.Element {
           className="pixel-canvas"
           onClick={handleCanvasClick}
         />
+        <div className="pixel-live-preview">
+          <span className="muted-text">Live Sprite Preview (4x)</span>
+          <canvas
+            ref={previewCanvasRef}
+            width={grid.width * 4}
+            height={grid.height * 4}
+            className="pixel-canvas"
+          />
+        </div>
       </div>
     </div>
   );

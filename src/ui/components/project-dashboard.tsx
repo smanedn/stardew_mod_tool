@@ -9,6 +9,7 @@ export interface ProjectDashboardProps {
   readonly recentProjects: readonly SdvProjectFile[];
   readonly onCreateFromTemplate: (templateId: ProjectTemplateId) => void;
   readonly onOpenRecent: (project: SdvProjectFile) => void;
+  readonly onDeleteRecent: (uniqueId: string) => void;
   readonly onImportManifest: (manifestJson: string) => void;
   readonly importError: string | null;
 }
@@ -99,15 +100,26 @@ export function ProjectDashboard(props: ProjectDashboardProps): React.JSX.Elemen
                   <span className="muted-text">v{proj.metadata.version}</span>
                   <div className="muted-text">{proj.metadata.uniqueId}</div>
                 </div>
-                <button
-                  type="button"
-                  className="secondary-btn"
-                  onClick={() => {
-                    props.onOpenRecent(proj);
-                  }}
-                >
-                  Open
-                </button>
+                <div className="inline-row">
+                  <button
+                    type="button"
+                    className="secondary-btn"
+                    onClick={() => {
+                      props.onOpenRecent(proj);
+                    }}
+                  >
+                    Open
+                  </button>
+                  <button
+                    type="button"
+                    className="danger-btn"
+                    onClick={() => {
+                      props.onDeleteRecent(proj.metadata.uniqueId);
+                    }}
+                  >
+                    Delete
+                  </button>
+                </div>
               </li>
             ))}
           </ul>

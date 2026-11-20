@@ -58,7 +58,16 @@ type EditorTab =
 const RECENT_STORAGE_KEY = 'sdv_mod_creator_recent_projects';
 const RECOVERY_STORAGE_KEY = 'sdv_mod_creator_recovery_snapshot';
 const ONBOARDING_STORAGE_KEY = 'sdv_mod_creator_onboarding_done';
+const THEME_STORAGE_KEY = 'sdv_mod_creator_theme';
 const BROWSER_AUTO_RECOVERY_MS = 120_000;
+
+function loadInitialTheme(): 'light' | 'dark' {
+  try {
+    return localStorage.getItem(THEME_STORAGE_KEY) === 'dark' ? 'dark' : 'light';
+  } catch {
+    return 'light';
+  }
+}
 
 function loadInitialOnboarding(): boolean {
   try {
@@ -110,7 +119,27 @@ export function App(): React.JSX.Element {
   const [activeTab, setActiveTab] = useState<EditorTab>('manifest');
   const [showInspector, setShowInspector] = useState<boolean>(false);
   const [showOnboarding, setShowOnboarding] = useState<boolean>(loadInitialOnboarding);
+  const [theme, setTheme] = useState<'light' | 'dark'>(loadInitialTheme);
   const [importError, setImportError] = useState<string | null>(null);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, theme);
+    } catch {
+      // Ignore storage errors.
+    }
+  }, [theme]);
+
+  const handleDeleteProject = (uniqueId: string): void => {
+    const updated = recentProjects.filter((item) => item.metadata.uniqueId !== uniqueId);
+    setRecentProjects(updated);
+    saveRecentProjects(updated);
+    if (activeProject?.metadata.uniqueId === uniqueId) {
+      setActiveProject(null);
+      setHistory(createUndoRedoHistory<SdvProjectFile>());
+    }
+  };
 
   const dismissOnboarding = (): void => {
     setShowOnboarding(false);
@@ -301,54 +330,70 @@ export function App(): React.JSX.Element {
     <main className="app-shell">
       <header className="app-header">
         <div>
-          <h1>Stardew Valley Easy Mod Creator</h1>
+          <h1>Stardew Valley Mod Creator - by Smane</h1>
           <p className="app-subtitle">Content Patcher Pack Studio (SMAPI 4.0+)</p>
         </div>
-        {activeProject === null && !showOnboarding && (
+        <div className="inline-row">
           <button
             type="button"
             className="secondary-btn"
-            onClick={() => { setShowOnboarding(true); }}
+            onClick={() => { setTheme(theme === 'dark' ? 'light' : 'dark'); }}
           >
-            2-Min Tutorial
+            {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
           </button>
-        )}
-        {activeProject !== null && (
-          <div className="inline-row">
+          {activeProject === null && !showOnboarding && (
             <button
               type="button"
               className="secondary-btn"
-              disabled={!canUndo(history)}
-              title="Undo (Ctrl+Z)"
-              onClick={handleUndo}
+              onClick={() => { setShowOnboarding(true); }}
             >
-              Undo
+              2-Min Tutorial
             </button>
-            <button
-              type="button"
-              className="secondary-btn"
-              disabled={!canRedo(history)}
-              title="Redo (Ctrl+Y)"
-              onClick={handleRedo}
-            >
-              Redo
-            </button>
-            <button
-              type="button"
-              className={showInspector ? 'season-btn active' : 'secondary-btn'}
-              onClick={() => { setShowInspector(!showInspector); }}
-            >
-              {showInspector ? 'Hide Code Inspector' : 'Live Code Inspector'}
-            </button>
-            <button
-              type="button"
-              className="secondary-btn"
-              onClick={() => { setActiveProject(null); }}
-            >
-              Back to Dashboard
-            </button>
-          </div>
-        )}
+          )}
+          {activeProject !== null && (
+            <>
+              <button
+                type="button"
+                className="secondary-btn"
+                disabled={!canUndo(history)}
+                title="Undo (Ctrl+Z)"
+                onClick={handleUndo}
+              >
+                Undo
+              </button>
+              <button
+                type="button"
+                className="secondary-btn"
+                disabled={!canRedo(history)}
+                title="Redo (Ctrl+Y)"
+                onClick={handleRedo}
+              >
+                Redo
+              </button>
+              <button
+                type="button"
+                className={showInspector ? 'season-btn active' : 'secondary-btn'}
+                onClick={() => { setShowInspector(!showInspector); }}
+              >
+                {showInspector ? 'Hide Code Inspector' : 'Live Code Inspector'}
+              </button>
+              <button
+                type="button"
+                className="danger-btn"
+                onClick={() => { handleDeleteProject(activeProject.metadata.uniqueId); }}
+              >
+                Delete Mod
+              </button>
+              <button
+                type="button"
+                className="secondary-btn"
+                onClick={() => { setActiveProject(null); }}
+              >
+                Back to Dashboard
+              </button>
+            </>
+          )}
+        </div>
       </header>
 
       {activeProject === null ? (
@@ -366,6 +411,7 @@ export function App(): React.JSX.Element {
             recentProjects={recentProjects}
             onCreateFromTemplate={handleCreateTemplate}
             onOpenRecent={openAndRememberProject}
+            onDeleteRecent={handleDeleteProject}
             onImportManifest={handleImportManifest}
             importError={importError}
           />

@@ -6,35 +6,50 @@ export interface OnboardingTutorialProps {
 }
 
 interface TutorialStep {
+  readonly icon: string;
+  readonly badge: string;
   readonly title: string;
   readonly summary: string;
   readonly tip: string;
+  readonly previewTag: string;
 }
 
 const TUTORIAL_STEPS: readonly TutorialStep[] = [
   {
-    title: 'Step 1: Pick a Template (30 sec)',
+    icon: '🌱',
+    badge: '30 sec',
+    title: 'Step 1: Pick a Template',
     summary:
       'Start from New Object, New Crop & Seed, Retexture Sprite, or NPC Dialogue on the Dashboard.',
     tip: 'You can also import an existing manifest.json to edit an existing Content Patcher pack.',
+    previewTag: 'Templates: Object • Crop • Retexture • Dialogue',
   },
   {
-    title: 'Step 2: Configure Manifest & UniqueID (30 sec)',
+    icon: '📜',
+    badge: '30 sec',
+    title: 'Step 2: Configure Manifest & UniqueID',
     summary:
       'Enter your Mod Name and Author, then click Auto-Generate to create a valid SMAPI UniqueID.',
     tip: 'Use +Patch / +Minor buttons to increment Semantic Versioning safely.',
+    previewTag: 'Author.MyFirstMod  v1.0.0',
   },
   {
-    title: 'Step 3: Add Content & Preview Live (45 sec)',
+    icon: '🎨',
+    badge: '45 sec',
+    title: 'Step 3: Build & Preview Live',
     summary:
-      'Create custom items, crops, sprites, or dialogues and preview tooltips or code live.',
+      'Create custom items, crops, sprites, or dialogues with live in-game previews in every tab.',
     tip: 'All edits support Ctrl+Z / Ctrl+Y Undo & Redo and silent 2-minute crash recovery.',
+    previewTag: 'Live Tooltip • Portrait Box • Pixel Grid',
   },
   {
-    title: 'Step 4: Test & Export to Nexus Mods (15 sec)',
+    icon: '🚀',
+    badge: '15 sec',
+    title: 'Step 4: Test & Export to Nexus Mods',
     summary:
       'Use Test in Game to monitor SMAPI logs, then export to Mods/ or package a [CP] .zip.',
     tip: 'Every overwrite automatically creates a safety snapshot in .backup/.',
+    previewTag: '[CP] MyFirstMod.zip Ready!',
   },
 ];
 
@@ -42,6 +57,7 @@ export function OnboardingTutorial(props: OnboardingTutorialProps): React.JSX.El
   const [stepIndex, setStepIndex] = useState<number>(0);
   const currentStep = TUTORIAL_STEPS[stepIndex] ?? TUTORIAL_STEPS[0];
   const isLast = stepIndex >= TUTORIAL_STEPS.length - 1;
+  const progressPercent = ((stepIndex + 1) / TUTORIAL_STEPS.length) * 100;
 
   if (currentStep === undefined) {
     return <></>;
@@ -50,20 +66,41 @@ export function OnboardingTutorial(props: OnboardingTutorialProps): React.JSX.El
   return (
     <section className="onboarding-banner">
       <div className="module-toolbar">
-        <div>
-          <span className="template-badge">
-            Create Your First Mod in 2 Minutes ({String(stepIndex + 1)}/
-            {String(TUTORIAL_STEPS.length)})
-          </span>
-          <h3>{currentStep.title}</h3>
+        <div className="inline-row">
+          <span className="template-badge">Create Your First Mod in 2 Minutes</span>
+          <span className="muted-text">{currentStep.badge}</span>
         </div>
         <button type="button" className="secondary-btn" onClick={props.onComplete}>
           Dismiss
         </button>
       </div>
 
-      <p>{currentStep.summary}</p>
-      <p className="muted-text">Tip: {currentStep.tip}</p>
+      <div className="tutorial-progress-track">
+        <div className="tutorial-progress-fill" style={{ width: `${String(progressPercent)}%` }} />
+      </div>
+
+      <div className="tutorial-dots">
+        {TUTORIAL_STEPS.map((step, idx) => (
+          <button
+            key={step.title}
+            type="button"
+            className={idx === stepIndex ? 'tutorial-dot active' : 'tutorial-dot'}
+            onClick={() => { setStepIndex(idx); }}
+          >
+            {step.icon} Step {String(idx + 1)}
+          </button>
+        ))}
+      </div>
+
+      <div key={stepIndex} className="tutorial-step-card">
+        <div className="tutorial-icon-circle">{currentStep.icon}</div>
+        <div className="tutorial-step-body">
+          <h3>{currentStep.title}</h3>
+          <p>{currentStep.summary}</p>
+          <div className="tutorial-preview-pill">{currentStep.previewTag}</div>
+          <p className="muted-text">Tip: {currentStep.tip}</p>
+        </div>
+      </div>
 
       <div className="inline-row">
         <button
@@ -83,7 +120,7 @@ export function OnboardingTutorial(props: OnboardingTutorialProps): React.JSX.El
             Next Step
           </button>
         ) : (
-          <button type="button" className="launch-btn" onClick={props.onStartQuickMod}>
+          <button type="button" className="launch-btn pulse-btn" onClick={props.onStartQuickMod}>
             Create My First Mod Now
           </button>
         )}
