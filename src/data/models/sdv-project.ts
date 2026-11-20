@@ -150,6 +150,20 @@ export interface WeaponEditEntry {
   readonly defense: number;
 }
 
+export type FurnitureTypeId = 'chair' | 'table' | 'rug' | 'lamp' | 'painting';
+export type FurnitureTileSize = '1x1' | '2x1' | '2x2';
+
+export interface FurnitureEditEntry {
+  readonly kind: 'furniture';
+  readonly id: string;
+  readonly furnitureId: string;
+  readonly displayName: string;
+  readonly furnitureType: FurnitureTypeId;
+  readonly tileSize: FurnitureTileSize;
+  readonly price: number;
+  readonly assetId?: string;
+}
+
 export type SdvProjectEdit =
   | ObjectEditEntry
   | CropEditEntry
@@ -160,7 +174,8 @@ export type SdvProjectEdit =
   | MailEditEntry
   | EventEditEntry
   | AnimalEditEntry
-  | WeaponEditEntry;
+  | WeaponEditEntry
+  | FurnitureEditEntry;
 
 export interface ProjectConfigOption {
   readonly id: string;

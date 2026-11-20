@@ -4,6 +4,7 @@ export * from './config-editor.js';
 export * from './crop-wizard.js';
 export * from './dialogue-editor.js';
 export * from './event-builder.js';
+export * from './furniture-editor.js';
 export * from './gift-tastes-editor.js';
 export * from './i18n-editor.js';
 export * from './in-game-preview.js';

@@ -170,6 +170,19 @@ const WeaponEditSchema = z
   })
   .strict();
 
+const FurnitureEditSchema = z
+  .object({
+    kind: z.literal('furniture'),
+    id: z.string().min(1),
+    furnitureId: z.string().min(1),
+    displayName: z.string().min(1),
+    furnitureType: z.enum(['chair', 'table', 'rug', 'lamp', 'painting']),
+    tileSize: z.enum(['1x1', '2x1', '2x2']),
+    price: z.number().int().min(0),
+    assetId: z.string().min(1).optional(),
+  })
+  .strict();
+
 const ProjectConfigOptionSchema = z
   .object({
     id: z.string().min(1),
@@ -204,6 +217,7 @@ export const SdvProjectSchema: z.ZodType<SdvProjectFile> = z
         EventEditSchema,
         AnimalEditSchema,
         WeaponEditSchema,
+        FurnitureEditSchema,
       ]),
     ),
     configOptions: z.array(ProjectConfigOptionSchema).optional(),

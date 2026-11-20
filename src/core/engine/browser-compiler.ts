@@ -5,6 +5,7 @@ import type {
   CropEditEntry,
   DialogueEditEntry,
   EventEditEntry,
+  FurnitureEditEntry,
   GiftTasteEditEntry,
   LinkedAssetEntry,
   MailEditEntry,
@@ -318,6 +319,33 @@ function compileWeaponPatch(edit: WeaponEditEntry): ContentPatch {
   };
 }
 
+const FURNITURE_TILE_DIMS: Readonly<Record<FurnitureEditEntry['tileSize'], string>> = {
+  '1x1': '1 1',
+  '2x1': '2 1',
+  '2x2': '2 2',
+};
+
+function compileFurniturePatch(edit: FurnitureEditEntry): ContentPatch {
+  const dims = FURNITURE_TILE_DIMS[edit.tileSize];
+  const value = [
+    edit.displayName,
+    edit.furnitureType,
+    dims,
+    dims,
+    '1',
+    String(edit.price),
+    '-1',
+    edit.displayName,
+  ].join('/');
+
+  return {
+    Action: 'EditData',
+    LogName: `Add Furniture: ${edit.displayName}`,
+    Target: 'Data/Furniture',
+    Entries: { [edit.furnitureId]: value },
+  };
+}
+
 function compileSingleEdit(
   edit: SdvProjectFile['edits'][number],
   assetsById: ReadonlyMap<string, LinkedAssetEntry>,
@@ -345,6 +373,8 @@ function compileSingleEdit(
       return [compileAnimalPatch(edit)];
     case 'weapon':
       return [compileWeaponPatch(edit)];
+    case 'furniture':
+      return [compileFurniturePatch(edit)];
   }
 }
 
