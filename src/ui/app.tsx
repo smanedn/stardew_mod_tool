@@ -27,6 +27,7 @@ import {
   ObjectCreator,
   PixelEditor,
   ProjectDashboard,
+  QuickLaunchPanel,
   RetexturePatcher,
 } from './components/index.js';
 import './styles.css';
@@ -40,7 +41,8 @@ type EditorTab =
   | 'config'
   | 'pixel'
   | 'i18n'
-  | 'preview';
+  | 'preview'
+  | 'launch';
 
 const RECENT_STORAGE_KEY = 'sdv_mod_creator_recent_projects';
 
@@ -226,6 +228,7 @@ export function App(): React.JSX.Element {
                 'pixel',
                 'i18n',
                 'preview',
+                'launch',
               ] as const
             ).map((tab) => (
               <button
@@ -250,7 +253,9 @@ export function App(): React.JSX.Element {
                               ? 'Pixel Editor'
                               : tab === 'i18n'
                                 ? 'i18n'
-                                : 'Live Preview'}
+                                : tab === 'preview'
+                                  ? 'Live Preview'
+                                  : 'Test in Game'}
               </button>
             ))}
           </nav>
@@ -335,6 +340,12 @@ export function App(): React.JSX.Element {
               )}
               {activeTab === 'preview' && (
                 <InGamePreview objects={objectEdits} dialogues={dialogueEdits} />
+              )}
+              {activeTab === 'launch' && (
+                <QuickLaunchPanel
+                  modUniqueId={activeProject.metadata.uniqueId}
+                  modName={activeProject.metadata.name}
+                />
               )}
             </div>
             {showInspector && <CodeInspector project={activeProject} />}

@@ -458,3 +458,49 @@ body {
   max-height: 80vh;
   overflow: auto;
 }
+
+.launch-btn {
+  background: #15803d;
+  color: #ffffff;
+  border: 1px solid #166534;
+  border-radius: 6px;
+  padding: 0.45rem 1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.smapi-console {
+  background: #0f172a;
+  color: #cbd5e1;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.82rem;
+  padding: 0.85rem;
+  border-radius: 8px;
+  min-height: 180px;
+  max-height: 360px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.smapi-log-line {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.smapi-warn {
+  color: #facc15;
+}
+
+.smapi-error {
+  color: #f87171;
+}
+
+.smapi-mod-error {
+  color: #fecaca;
+  background: rgba(185, 28, 28, 0.45);
+  border-left: 3px solid #ef4444;
+  padding: 0.15rem 0.45rem;
+  font-weight: 700;
+}
