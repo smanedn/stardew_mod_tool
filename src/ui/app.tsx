@@ -35,6 +35,7 @@ import {
   InGamePreview,
   ManifestEditor,
   ObjectCreator,
+  OnboardingTutorial,
   PixelEditor,
   ProjectDashboard,
   QuickLaunchPanel,
@@ -56,7 +57,16 @@ type EditorTab =
 
 const RECENT_STORAGE_KEY = 'sdv_mod_creator_recent_projects';
 const RECOVERY_STORAGE_KEY = 'sdv_mod_creator_recovery_snapshot';
+const ONBOARDING_STORAGE_KEY = 'sdv_mod_creator_onboarding_done';
 const BROWSER_AUTO_RECOVERY_MS = 120_000;
+
+function loadInitialOnboarding(): boolean {
+  try {
+    return localStorage.getItem(ONBOARDING_STORAGE_KEY) !== 'true';
+  } catch {
+    return true;
+  }
+}
 
 function isSdvProjectFile(value: unknown): value is SdvProjectFile {
   return (
@@ -99,7 +109,17 @@ export function App(): React.JSX.Element {
   );
   const [activeTab, setActiveTab] = useState<EditorTab>('manifest');
   const [showInspector, setShowInspector] = useState<boolean>(false);
+  const [showOnboarding, setShowOnboarding] = useState<boolean>(loadInitialOnboarding);
   const [importError, setImportError] = useState<string | null>(null);
+
+  const dismissOnboarding = (): void => {
+    setShowOnboarding(false);
+    try {
+      localStorage.setItem(ONBOARDING_STORAGE_KEY, 'true');
+    } catch {
+      // Ignore storage errors.
+    }
+  };
 
   const persistActiveProject = useCallback(
     (project: SdvProjectFile): void => {
@@ -284,6 +304,15 @@ export function App(): React.JSX.Element {
           <h1>Stardew Valley Easy Mod Creator</h1>
           <p className="app-subtitle">Content Patcher Pack Studio (SMAPI 4.0+)</p>
         </div>
+        {activeProject === null && !showOnboarding && (
+          <button
+            type="button"
+            className="secondary-btn"
+            onClick={() => { setShowOnboarding(true); }}
+          >
+            2-Min Tutorial
+          </button>
+        )}
         {activeProject !== null && (
           <div className="inline-row">
             <button
@@ -323,13 +352,24 @@ export function App(): React.JSX.Element {
       </header>
 
       {activeProject === null ? (
-        <ProjectDashboard
-          recentProjects={recentProjects}
-          onCreateFromTemplate={handleCreateTemplate}
-          onOpenRecent={openAndRememberProject}
-          onImportManifest={handleImportManifest}
-          importError={importError}
-        />
+        <>
+          {showOnboarding && (
+            <OnboardingTutorial
+              onComplete={dismissOnboarding}
+              onStartQuickMod={() => {
+                dismissOnboarding();
+                handleCreateTemplate('object');
+              }}
+            />
+          )}
+          <ProjectDashboard
+            recentProjects={recentProjects}
+            onCreateFromTemplate={handleCreateTemplate}
+            onOpenRecent={openAndRememberProject}
+            onImportManifest={handleImportManifest}
+            importError={importError}
+          />
+        </>
       ) : (
         <>
           <nav className="workspace-tabs">
