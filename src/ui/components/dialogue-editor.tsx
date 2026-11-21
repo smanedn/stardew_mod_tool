@@ -7,6 +7,7 @@ import {
 } from '../../core/engine/dialogue-tokens.js';
 import { parseDialoguePreview } from '../../core/engine/ui-simulator.js';
 import type { DialogueEditEntry } from '../../data/models/index.js';
+import { getNpcPortraitSrc } from '../utils/npc-portraits.js';
 
 export interface DialogueEditorProps {
   readonly dialogues: readonly DialogueEditEntry[];
@@ -119,6 +120,10 @@ export function DialogueEditor(props: DialogueEditorProps): React.JSX.Element {
 
   const previewDlg = props.dialogues[0];
   const parsedPreview = previewDlg ? parseDialoguePreview(previewDlg.text) : null;
+  const previewPortraitSrc =
+    previewDlg !== undefined && parsedPreview !== null
+      ? getNpcPortraitSrc(previewDlg.npcName, parsedPreview.mood)
+      : null;
 
   return (
     <div className="editor-split">
@@ -159,7 +164,15 @@ export function DialogueEditor(props: DialogueEditorProps): React.JSX.Element {
               </div>
               <div className="sdv-portrait-panel">
                 <div className="sdv-portrait-frame">
-                  <span className="sdv-portrait-mood">{parsedPreview.mood}</span>
+                  {previewPortraitSrc !== null ? (
+                    <img
+                      src={previewPortraitSrc}
+                      alt={`${previewDlg.npcName} (${parsedPreview.mood})`}
+                      className="sdv-portrait-img"
+                    />
+                  ) : (
+                    <span className="sdv-portrait-mood">{parsedPreview.mood}</span>
+                  )}
                 </div>
                 <div className="sdv-npc-name">{previewDlg.npcName}</div>
               </div>
