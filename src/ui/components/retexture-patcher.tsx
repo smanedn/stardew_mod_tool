@@ -86,7 +86,9 @@ function TileGridPickerCard(props: {
           <button
             key={sheet.target}
             type="button"
-            className={props.activeSheet.target === sheet.target ? 'season-btn active' : 'season-btn'}
+            className={
+              props.activeSheet.target === sheet.target ? 'season-btn active' : 'season-btn'
+            }
             onClick={() => { props.onSelectSheet(sheet); }}
           >
             {sheet.label}
