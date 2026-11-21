@@ -18,8 +18,12 @@ describe('Villager Dialogue & Portrait Fixes', () => {
     expect(parsed.pages).toEqual(['Hi Alex!', 'Welcome to Star Farm!']);
   });
 
-  it('resolves Abigail_Happy.png and 16x16 pixel-art SVG portraits for all 34 villagers', () => {
+  it('resolves Abigail_Happy.png, assets/Alex/*.png, and 16x16 SVG fallbacks', () => {
     expect(getNpcPortraitSrc('Abigail', 'Happy')).toBeTruthy();
+    expect(getNpcPortraitSrc('Alex', 'Happy')).toContain('Alex_Happy');
+    expect(getNpcPortraitSrc('Alex', 'Love')).toContain('Alex_Blush');
+    expect(getNpcPortraitSrc('Alex', 'Angry')).toContain('Alex_Annoyed');
+    expect(getNpcPortraitSrc('Alex', 'Sad')).toContain('Alex_Concerned');
     for (const npc of COMMON_VILLAGERS) {
       expect(getNpcPortraitSrc(npc, 'Happy')).toBeTruthy();
       expect(getNpcPortraitSrc(npc, 'Sad')).toBeTruthy();
