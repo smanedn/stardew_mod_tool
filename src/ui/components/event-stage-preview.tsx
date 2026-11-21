@@ -6,7 +6,7 @@ import type {
   EventTilePos,
   EventTimelineStep,
 } from '../../data/models/index.js';
-import { getNpcPortraitSrc } from '../utils/npc-portraits.js';
+import { useNpcPortraitSrc } from '../utils/npc-portraits.js';
 
 export interface EventStagePreviewProps {
   readonly event: EventEditEntry;
@@ -221,7 +221,7 @@ export function EventStagePreview(props: EventStagePreviewProps): React.JSX.Elem
 
   const snapshot = computePlaybackSnapshot(event, playing ? stepIndex : -1);
   const parsed = parseDialoguePreview(snapshot.activeText);
-  const portraitSrc = getNpcPortraitSrc(event.npcName, parsed.mood);
+  const portraitSrc = useNpcPortraitSrc(event.npcName, parsed.mood);
   const origin = LOCATION_ORIGIN[event.location];
 
   return (

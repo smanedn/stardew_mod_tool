@@ -7,7 +7,7 @@ import {
 } from '../../core/engine/dialogue-tokens.js';
 import { type PortraitMood, parseDialoguePreview } from '../../core/engine/ui-simulator.js';
 import type { DialogueEditEntry } from '../../data/models/index.js';
-import { getNpcPortraitSrc } from '../utils/npc-portraits.js';
+import { useNpcPortraitSrc } from '../utils/npc-portraits.js';
 
 const MOOD_EMOJI: Readonly<Record<PortraitMood, string>> = {
   Neutral: '🙂',
@@ -148,10 +148,10 @@ export function DialogueEditor(props: DialogueEditorProps): React.JSX.Element {
   const previewDlg =
     props.dialogues.find((d) => d.id === selectedPreviewId) ?? props.dialogues[0];
   const parsedPreview = previewDlg ? parseDialoguePreview(previewDlg.text) : null;
-  const previewPortraitSrc =
-    previewDlg !== undefined && parsedPreview !== null
-      ? getNpcPortraitSrc(previewDlg.npcName, parsedPreview.mood)
-      : null;
+  const previewPortraitSrc = useNpcPortraitSrc(
+    previewDlg?.npcName ?? '',
+    parsedPreview?.mood ?? 'Neutral',
+  );
 
   return (
     <div className="editor-split">

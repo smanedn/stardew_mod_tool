@@ -56,6 +56,7 @@ import {
   QuickLaunchPanel,
   RetexturePatcher,
   ShopMailEditor,
+  ShortcutCheatsheet,
   VillagerCreator,
   type TutorialTargetTab,
 } from './components/index.js';
@@ -124,6 +125,7 @@ export function App(): React.JSX.Element {
   const [advancedMode, setAdvancedMode] = useState<boolean>(false);
   const [showInspector, setShowInspector] = useState<boolean>(false);
   const [showOnboarding, setShowOnboarding] = useState<boolean>(loadInitialOnboarding);
+  const [showShortcuts, setShowShortcuts] = useState<boolean>(false);
   const [theme, setTheme] = useState<'light' | 'dark'>(loadInitialTheme);
   const [season, setSeason] = useState<ValleySeason>(loadInitialSeason);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
@@ -477,7 +479,7 @@ export function App(): React.JSX.Element {
           <img src="/logo.png" alt="SVMC Logo" className="hero-logo" />
           <div>
             <h1>Stardew Valley Mod Creator - by Smane</h1>
-            <p className="app-subtitle">Cozy Content Patcher Studio • v0.9.0</p>
+            <p className="app-subtitle">Cozy Content Patcher Studio • v1.0.0</p>
           </div>
         </div>
         <div className="inline-row">
@@ -518,6 +520,13 @@ export function App(): React.JSX.Element {
               2-Min Tutorial
             </button>
           )}
+          <button
+            type="button"
+            className={showShortcuts ? 'season-btn active' : 'secondary-btn'}
+            onClick={() => { setShowShortcuts(!showShortcuts); }}
+          >
+            Shortcuts (?)
+          </button>
           {activeProject !== null && (
             <>
               <button
@@ -573,6 +582,9 @@ export function App(): React.JSX.Element {
         </div>
       </header>
 
+      {showShortcuts && (
+        <ShortcutCheatsheet onClose={() => { setShowShortcuts(false); }} />
+      )}
       {showOnboarding && (
         <OnboardingTutorial
           activeProject={activeProject}

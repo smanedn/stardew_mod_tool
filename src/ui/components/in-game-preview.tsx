@@ -26,7 +26,7 @@ import type {
   ObjectEditEntry,
   SdvProjectFile,
 } from '../../data/models/index.js';
-import { getNpcPortraitSrc } from '../utils/npc-portraits.js';
+import { useNpcPortraitSrc } from '../utils/npc-portraits.js';
 
 export interface InGamePreviewProps {
   readonly project?: SdvProjectFile;
@@ -94,7 +94,7 @@ function DialogueBoxSimulator(props: {
   readonly farmerName: string;
 }): React.JSX.Element {
   const parsed = parseDialoguePreview(props.entry.text, props.farmerName);
-  const portraitSrc = getNpcPortraitSrc(props.entry.npcName, parsed.mood);
+  const portraitSrc = useNpcPortraitSrc(props.entry.npcName, parsed.mood);
 
   return (
     <div className="sdv-dialogue-box">

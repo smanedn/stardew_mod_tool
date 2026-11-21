@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { COMMON_VILLAGERS } from '../../../src/core/engine/dialogue-tokens.js';
 import { parseDialoguePreview } from '../../../src/core/engine/ui-simulator.js';
-import { getNpcPortraitSrc } from '../../../src/ui/utils/npc-portraits.js';
+import { getNpcPortraitSrc, preloadNpcPortrait } from '../../../src/ui/utils/npc-portraits.js';
 
 describe('Villager Dialogue & Portrait Fixes', () => {
   it('includes all 34 vanilla Stardew Valley villagers', () => {
@@ -18,12 +18,13 @@ describe('Villager Dialogue & Portrait Fixes', () => {
     expect(parsed.pages).toEqual(['Hi Alex!', 'Welcome to Star Farm!']);
   });
 
-  it('resolves Abigail_Happy.png, assets/Alex/*.png, and 16x16 SVG fallbacks', () => {
-    expect(getNpcPortraitSrc('Abigail', 'Happy')).toBeTruthy();
-    expect(getNpcPortraitSrc('Alex', 'Happy')).toContain('Alex_Happy');
-    expect(getNpcPortraitSrc('Alex', 'Love')).toContain('Alex_Blush');
-    expect(getNpcPortraitSrc('Alex', 'Angry')).toContain('Alex_Annoyed');
-    expect(getNpcPortraitSrc('Alex', 'Sad')).toContain('Alex_Concerned');
+  it('lazy-loads Abigail_Happy.png, assets/Alex/*.png, and 16x16 SVG fallbacks', async () => {
+    expect(await preloadNpcPortrait('Abigail', 'Happy')).toBeTruthy();
+    expect(await preloadNpcPortrait('Alex', 'Happy')).toContain('Alex_Happy');
+    expect(await preloadNpcPortrait('Alex', 'Love')).toContain('Alex_Blush');
+    expect(await preloadNpcPortrait('Alex', 'Angry')).toContain('Alex_Annoyed');
+    expect(await preloadNpcPortrait('Alex', 'Sad')).toContain('Alex_Concerned');
+    expect(await preloadNpcPortrait('Shane', 'Love')).toContain('Shane_Blushing');
     for (const npc of COMMON_VILLAGERS) {
       expect(getNpcPortraitSrc(npc, 'Happy')).toBeTruthy();
       expect(getNpcPortraitSrc(npc, 'Sad')).toBeTruthy();

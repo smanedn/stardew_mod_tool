@@ -19,4 +19,5 @@ export * from './project-dashboard.js';
 export * from './quick-launch-panel.js';
 export * from './retexture-patcher.js';
 export * from './shop-mail-editor.js';
+export * from './shortcut-cheatsheet.js';
 export * from './villager-creator.js';

@@ -41,23 +41,23 @@ const TUTORIAL_STEPS: readonly TutorialStep[] = [
   },
   {
     icon: '🍓',
-    title: 'Step 3: Add a Custom Stardew Item',
+    title: 'Step 3: Add a Custom Stardew Item & Recipe',
     summary:
-      'In Objects: click below to add "Golden Starberry" (250g, +100 Energy) with a live tooltip.',
+      'In New Items: add "Golden Starberry" (250g, +100 Energy) with searchable vanilla ingredients.',
     actionLabel: 'Add Golden Starberry & Next →',
   },
   {
     icon: '💬',
-    title: 'Step 4: Add Villager Dialogue',
+    title: 'Step 4: Villager Chat, Cutscenes & Custom NPCs',
     summary:
-      'In Dialogue: give Abigail a custom line using @ (player name) and $h (happy portrait).',
+      'Preview official villager portraits, direct 2D Cutscenes, or build your own Custom NPC.',
     actionLabel: 'Add Abigail Dialogue & Preview →',
   },
   {
     icon: '🚀',
-    title: 'Step 5: Your Working Mod is Ready!',
+    title: 'Step 5: Lint, Conflict-Check & Export (v1.0.0)!',
     summary:
-      'Preview your item & dialogue below, then download manifest.json & content.json!',
+      'Preview your mod, check Mods/ conflicts, generate Nexus BBCode, or export to SVMM!',
     actionLabel: 'Finish Tutorial ✓',
   },
 ];
