@@ -5,6 +5,7 @@ import type {
   WeaponEditEntry,
   WeaponTypeId,
 } from '../../data/models/index.js';
+import { ItemPicker } from './item-picker.js';
 
 export interface AnimalWeaponEditorProps {
   readonly uniqueId: string;
@@ -114,16 +115,14 @@ export function AnimalWeaponEditor(props: AnimalWeaponEditorProps): React.JSX.El
                   }}
                 />
               </label>
-              <label className="form-field">
-                <span>Produce Item ID</span>
-                <input
-                  type="text"
-                  value={entry.produceItemId}
-                  onChange={(e) => {
-                    props.onUpdateAnimal({ ...entry, produceItemId: e.target.value });
-                  }}
-                />
-              </label>
+              <ItemPicker
+                label="Produce Item"
+                value={entry.produceItemId}
+                customObjects={props.objects}
+                onChange={(nextId) => {
+                  props.onUpdateAnimal({ ...entry, produceItemId: nextId });
+                }}
+              />
             </div>
           </div>
         ))}

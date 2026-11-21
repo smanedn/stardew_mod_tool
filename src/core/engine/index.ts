@@ -20,4 +20,5 @@ export * from './svmm-integration.js';
 export * from './tauri-bridge.js';
 export * from './ui-simulator.js';
 export * from './undo-redo.js';
+export * from './vanilla-items.js';
 export * from './zip-packager.js';

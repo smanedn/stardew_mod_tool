@@ -4,6 +4,7 @@ import type {
   GiftTasteLevel,
   ObjectEditEntry,
 } from '../../data/models/index.js';
+import { ItemPicker } from './item-picker.js';
 
 export interface GiftTastesEditorProps {
   readonly uniqueId: string;
@@ -100,24 +101,14 @@ export function GiftTastesEditor(props: GiftTastesEditorProps): React.JSX.Elemen
                     ))}
                   </select>
                 </label>
-                <label className="form-field">
-                  <span>Item ID</span>
-                  <input
-                    type="text"
-                    list={`gift-items-${entry.id}`}
-                    value={entry.itemId}
-                    onChange={(e) => {
-                      props.onUpdateGiftTaste({ ...entry, itemId: e.target.value });
-                    }}
-                  />
-                  <datalist id={`gift-items-${entry.id}`}>
-                    {props.objects.map((obj) => (
-                      <option key={obj.id} value={obj.itemId}>
-                        {obj.displayName}
-                      </option>
-                    ))}
-                  </datalist>
-                </label>
+                <ItemPicker
+                  label="Gift Item"
+                  value={entry.itemId}
+                  customObjects={props.objects}
+                  onChange={(nextId) => {
+                    props.onUpdateGiftTaste({ ...entry, itemId: nextId });
+                  }}
+                />
               </div>
             </div>
           ))

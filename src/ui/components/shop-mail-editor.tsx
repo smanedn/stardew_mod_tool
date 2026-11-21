@@ -4,6 +4,7 @@ import type {
   ShopEditEntry,
   VanillaShopId,
 } from '../../data/models/index.js';
+import { ItemPicker } from './item-picker.js';
 
 export interface ShopMailEditorProps {
   readonly uniqueId: string;
@@ -90,14 +91,12 @@ export function ShopMailEditor(props: ShopMailEditorProps): React.JSX.Element {
                   ))}
                 </select>
               </label>
-              <label className="form-field">
-                <span>Item ID</span>
-                <input
-                  type="text"
-                  value={entry.itemId}
-                  onChange={(e) => { props.onUpdateShop({ ...entry, itemId: e.target.value }); }}
-                />
-              </label>
+              <ItemPicker
+                label="Shop Item"
+                value={entry.itemId}
+                customObjects={props.objects}
+                onChange={(nextId) => { props.onUpdateShop({ ...entry, itemId: nextId }); }}
+              />
               <label className="form-field">
                 <span>Buy Price (g)</span>
                 <input
@@ -148,16 +147,15 @@ export function ShopMailEditor(props: ShopMailEditorProps): React.JSX.Element {
                 onChange={(e) => { props.onUpdateMail({ ...entry, body: e.target.value }); }}
               />
             </label>
-            <label className="form-field">
-              <span>Attached Gift Item ID (optional)</span>
-              <input
-                type="text"
-                value={entry.attachmentItemId ?? ''}
-                onChange={(e) => {
-                  props.onUpdateMail({ ...entry, attachmentItemId: e.target.value });
-                }}
-              />
-            </label>
+            <ItemPicker
+              label="Attached Gift Item (optional)"
+              value={entry.attachmentItemId ?? ''}
+              customObjects={props.objects}
+              allowEmpty
+              onChange={(nextId) => {
+                props.onUpdateMail({ ...entry, attachmentItemId: nextId });
+              }}
+            />
           </div>
         ))}
       </div>

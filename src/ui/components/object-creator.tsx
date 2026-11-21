@@ -7,6 +7,7 @@ import type {
   ObjectEditEntry,
   ObjectRecipeConfig,
 } from '../../data/models/index.js';
+import { ItemPicker } from './item-picker.js';
 
 export interface ObjectCreatorProps {
   readonly uniqueId: string;
@@ -27,16 +28,43 @@ const OBJECT_CATEGORIES: ReadonlyArray<{ readonly label: string; readonly value:
   { label: 'Artifact / Keepsake', value: 0 },
 ];
 
+function IngredientRow(props: {
+  readonly itemId: string;
+  readonly qty: number;
+  readonly customObjects: readonly ObjectEditEntry[];
+  readonly onChangeItem: (nextId: string) => void;
+  readonly onChangeQty: (nextQty: number) => void;
+  readonly onRemove: () => void;
+}): React.JSX.Element {
+  return (
+    <div className="timeline-step-row">
+      <ItemPicker
+        label="Ingredient"
+        value={props.itemId}
+        customObjects={props.customObjects}
+        onChange={props.onChangeItem}
+      />
+      <input
+        type="number"
+        min={1}
+        aria-label="Ingredient quantity"
+        value={props.qty}
+        onChange={(e) => { props.onChangeQty(Math.max(1, Number(e.target.value) || 1)); }}
+      />
+      <button type="button" className="danger-btn" onClick={props.onRemove}>
+        ✕
+      </button>
+    </div>
+  );
+}
+
 function RecipeSection(props: {
   readonly recipe: ObjectRecipeConfig | undefined;
+  readonly customObjects: readonly ObjectEditEntry[];
   readonly onChange: (recipe: ObjectRecipeConfig | undefined) => void;
 }): React.JSX.Element {
   const kind = props.recipe?.kind ?? 'none';
-  const ingredientsText = props.recipe
-    ? Object.entries(props.recipe.ingredients)
-        .map(([id, qty]) => `${id}:${String(qty)}`)
-        .join(', ')
-    : '';
+  const entries = props.recipe ? Object.entries(props.recipe.ingredients) : [];
 
   const handleKindChange = (nextKind: string): void => {
     if (nextKind === 'none') {
@@ -44,22 +72,14 @@ function RecipeSection(props: {
       return;
     }
     const validKind = nextKind === 'cooking' ? 'cooking' : 'crafting';
-    props.onChange({ kind: validKind, ingredients: props.recipe?.ingredients ?? { '388': 5 } });
+    props.onChange({ kind: validKind, ingredients: props.recipe?.ingredients ?? { '(O)388': 5 } });
   };
 
-  const handleIngredientsChange = (raw: string): void => {
+  const updateEntries = (next: Array<[string, number]>): void => {
     if (props.recipe === undefined) {
       return;
     }
-    const parsed: Array<[string, number]> = [];
-    for (const part of raw.split(',')) {
-      const [id, qtyStr] = part.split(':').map((s) => s.trim());
-      const qty = Number.parseInt(qtyStr ?? '1', 10);
-      if (id !== undefined && id.length > 0 && !Number.isNaN(qty) && qty > 0) {
-        parsed.push([id, qty]);
-      }
-    }
-    props.onChange({ kind: props.recipe.kind, ingredients: Object.fromEntries(parsed) });
+    props.onChange({ kind: props.recipe.kind, ingredients: Object.fromEntries(next) });
   };
 
   return (
@@ -72,20 +92,37 @@ function RecipeSection(props: {
           <option value="crafting">Craft in Inventory</option>
         </select>
         {props.recipe !== undefined && (
-          <input
-            type="text"
-            placeholder="Item IDs e.g. 246:1, 245:1"
-            value={ingredientsText}
-            onChange={(e) => { handleIngredientsChange(e.target.value); }}
-          />
+          <button
+            type="button"
+            className="secondary-btn"
+            onClick={() => { updateEntries([...entries, ['(O)245', 1]]); }}
+          >
+            + Ingredient
+          </button>
         )}
       </div>
+      {entries.map(([id, qty], idx) => (
+        <IngredientRow
+          key={`${id}-${String(idx)}`}
+          itemId={id}
+          qty={qty}
+          customObjects={props.customObjects}
+          onChangeItem={(nextId) => {
+            updateEntries(entries.map((pair, i) => (i === idx ? [nextId, pair[1]] : pair)));
+          }}
+          onChangeQty={(nextQty) => {
+            updateEntries(entries.map((pair, i) => (i === idx ? [pair[0], nextQty] : pair)));
+          }}
+          onRemove={() => { updateEntries(entries.filter((_, i) => i !== idx)); }}
+        />
+      ))}
     </div>
   );
 }
 
 function ObjectCard(props: {
   readonly entry: ObjectEditEntry;
+  readonly allObjects: readonly ObjectEditEntry[];
   readonly assets: readonly LinkedAssetEntry[];
   readonly showAdvanced: boolean;
   readonly onUpdate: (entry: ObjectEditEntry) => void;
@@ -224,7 +261,11 @@ function ObjectCard(props: {
           </label>
         </div>
       )}
-      <RecipeSection recipe={entry.recipe} onChange={(recipe) => { patch({ recipe }); }} />
+      <RecipeSection
+        recipe={entry.recipe}
+        customObjects={props.allObjects}
+        onChange={(recipe) => { patch({ recipe }); }}
+      />
       {props.assets.length > 0 && (
         <label className="form-field">
           <span>Item Sprite (from Sprites or Draw Sprite)</span>
@@ -290,6 +331,7 @@ export function ObjectCreator(props: ObjectCreatorProps): React.JSX.Element {
             <ObjectCard
               key={entry.id}
               entry={entry}
+              allObjects={props.objects}
               assets={props.assets ?? []}
               showAdvanced={showAdvanced}
               onUpdate={props.onUpdateObject}

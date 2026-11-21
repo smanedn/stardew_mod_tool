@@ -10,6 +10,7 @@ export * from './furniture-editor.js';
 export * from './gift-tastes-editor.js';
 export * from './i18n-editor.js';
 export * from './in-game-preview.js';
+export * from './item-picker.js';
 export * from './manifest-editor.js';
 export * from './object-creator.js';
 export * from './onboarding-tutorial.js';
