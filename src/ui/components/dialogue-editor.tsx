@@ -5,18 +5,9 @@ import {
   DIALOGUE_KEY_PRESETS,
   insertTokenAtCursor,
 } from '../../core/engine/dialogue-tokens.js';
-import { type PortraitMood, parseDialoguePreview } from '../../core/engine/ui-simulator.js';
+import { parseDialoguePreview } from '../../core/engine/ui-simulator.js';
 import type { DialogueEditEntry } from '../../data/models/index.js';
 import { useNpcPortraitSrc } from '../utils/npc-portraits.js';
-
-const MOOD_EMOJI: Readonly<Record<PortraitMood, string>> = {
-  Neutral: '🙂',
-  Happy: '😄',
-  Sad: '😢',
-  Angry: '😠',
-  Love: '😍',
-  Surprised: '😮',
-};
 
 export interface DialogueEditorProps {
   readonly dialogues: readonly DialogueEditEntry[];
@@ -215,10 +206,7 @@ export function DialogueEditor(props: DialogueEditorProps): React.JSX.Element {
                       className="sdv-portrait-img"
                     />
                   ) : (
-                    <>
-                      <span className="sdv-portrait-emoji">{MOOD_EMOJI[parsedPreview.mood]}</span>
-                      <span className="sdv-portrait-mood">{parsedPreview.mood}</span>
-                    </>
+                    <span className="sdv-portrait-mood">In development</span>
                   )}
                 </div>
                 <div className="sdv-npc-name">{previewDlg.npcName}</div>

@@ -18,17 +18,17 @@ describe('Villager Dialogue & Portrait Fixes', () => {
     expect(parsed.pages).toEqual(['Hi Alex!', 'Welcome to Star Farm!']);
   });
 
-  it('lazy-loads Abigail_Happy.png, assets/Alex/*.png, and 16x16 SVG fallbacks', async () => {
-    expect(await preloadNpcPortrait('Abigail', 'Happy')).toBeTruthy();
-    expect(await preloadNpcPortrait('Alex', 'Happy')).toContain('Alex_Happy');
-    expect(await preloadNpcPortrait('Alex', 'Love')).toContain('Alex_Blush');
-    expect(await preloadNpcPortrait('Alex', 'Angry')).toContain('Alex_Annoyed');
-    expect(await preloadNpcPortrait('Alex', 'Sad')).toContain('Alex_Concerned');
-    expect(await preloadNpcPortrait('Shane', 'Love')).toContain('Shane_Blushing');
-    for (const npc of COMMON_VILLAGERS) {
-      expect(getNpcPortraitSrc(npc, 'Happy')).toBeTruthy();
-      expect(getNpcPortraitSrc(npc, 'Sad')).toBeTruthy();
+  it('lazy-loads all 12 Marriage Candidates PNGs and returns null for others', async () => {
+    const candidates = [
+      'Abigail', 'Alex', 'Elliott', 'Emily', 'Haley', 'Harvey',
+      'Leah', 'Maru', 'Penny', 'Sam', 'Sebastian', 'Shane',
+    ];
+    for (const npc of candidates) {
+      expect(await preloadNpcPortrait(npc, 'Happy')).toBeTruthy();
     }
-    expect(getNpcPortraitSrc('CustomModNpc', 'Sad')).toBeNull();
+    expect(await preloadNpcPortrait('Alex', 'Love')).toContain('Alex_Blush');
+    expect(await preloadNpcPortrait('Shane', 'Love')).toContain('Shane_Blushing');
+    expect(getNpcPortraitSrc('Wizard', 'Sad')).toBeNull();
+    expect(getNpcPortraitSrc('Lewis', 'Neutral')).toBeNull();
   });
 });

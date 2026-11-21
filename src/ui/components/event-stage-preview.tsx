@@ -300,7 +300,7 @@ export function EventStagePreview(props: EventStagePreviewProps): React.JSX.Elem
                 className="sdv-portrait-img"
               />
             ) : (
-              <span className="sdv-portrait-mood">{parsed.mood}</span>
+              <span className="sdv-portrait-mood">In development</span>
             )}
           </div>
           <div className="sdv-npc-name">{event.npcName}</div>

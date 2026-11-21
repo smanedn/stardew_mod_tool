@@ -15,7 +15,6 @@ import {
   isTauriDesktopRuntime,
 } from '../../core/engine/tauri-bridge.js';
 import {
-  type PortraitMood,
   computeEnergyHealthFromEdibility,
   formatObjectCategoryLabel,
   parseDialoguePreview,
@@ -44,15 +43,6 @@ function downloadBlob(filename: string, data: BlobPart, mimeType: string): void 
   link.click();
   URL.revokeObjectURL(url);
 }
-
-const MOOD_EMOJI: Readonly<Record<PortraitMood, string>> = {
-  Neutral: '🙂',
-  Happy: '😄',
-  Sad: '😢',
-  Angry: '😠',
-  Love: '😍',
-  Surprised: '😮',
-};
 
 function InventoryTooltipSimulator(props: {
   readonly item: ObjectEditEntry;
@@ -114,10 +104,7 @@ function DialogueBoxSimulator(props: {
               className="sdv-portrait-img"
             />
           ) : (
-            <>
-              <span className="sdv-portrait-emoji">{MOOD_EMOJI[parsed.mood]}</span>
-              <span className="sdv-portrait-mood">{parsed.mood}</span>
-            </>
+            <span className="sdv-portrait-mood">In development</span>
           )}
         </div>
         <div className="sdv-npc-name">{props.entry.npcName}</div>

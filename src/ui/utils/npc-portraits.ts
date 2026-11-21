@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import type { PortraitMood } from '../../core/engine/ui-simulator.js';
-import { renderVillagerPortraitDataUri } from './villager-svg-portraits.js';
 
 const LAZY_PORTRAITS = import.meta.glob<string>('../../../assets/**/*.png', {
   import: 'default',
@@ -71,20 +70,16 @@ export async function preloadNpcPortrait(
 }
 
 /**
- * Synchronous portrait lookup: returns cached PNG if loaded, otherwise 16x16 SVG fallback.
+ * Synchronous portrait lookup: returns cached PNG if loaded, otherwise null.
  */
 export function getNpcPortraitSrc(npcName: string, mood: PortraitMood): string | null {
   const npc = npcName.trim().toLowerCase();
   const moodKey = mood.toLowerCase();
-  return (
-    PORTRAIT_CACHE.get(`${npc}:${moodKey}`) ??
-    PORTRAIT_CACHE.get(`${npc}:neutral`) ??
-    renderVillagerPortraitDataUri(npcName, mood)
-  );
+  return PORTRAIT_CACHE.get(`${npc}:${moodKey}`) ?? PORTRAIT_CACHE.get(`${npc}:neutral`) ?? null;
 }
 
 /**
- * React hook that returns the 16x16 SVG portrait immediately and lazy-loads any official PNG.
+ * React hook that lazy-loads any official PNG portrait from assets/ and returns null otherwise.
  */
 export function useNpcPortraitSrc(npcName: string, mood: PortraitMood): string | null {
   const [loadedUrl, setLoadedUrl] = useState<string | null>(() => getNpcPortraitSrc(npcName, mood));
