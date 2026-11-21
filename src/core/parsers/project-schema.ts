@@ -247,6 +247,38 @@ const FishEditSchema = z
   })
   .strict();
 
+const VillagerWaypointSchema = z
+  .object({
+    id: z.string().min(1),
+    time: z.string().min(3),
+    map: z.string().min(1),
+    x: z.number().int().min(0).max(200),
+    y: z.number().int().min(0).max(200),
+    facing: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)]),
+  })
+  .strict();
+
+const VillagerEditSchema = z
+  .object({
+    kind: z.literal('villager'),
+    id: z.string().min(1),
+    npcId: z.string().min(1),
+    displayName: z.string().min(1),
+    birthSeason: z.enum(['spring', 'summer', 'fall', 'winter']),
+    birthDay: z.number().int().min(1).max(28),
+    homeRegion: z.enum(['Town', 'Mountain', 'Forest', 'Beach']),
+    spawnMap: z.string().min(1),
+    spawnX: z.number().int().min(0).max(200),
+    spawnY: z.number().int().min(0).max(200),
+    lovedItems: z.string(),
+    likedItems: z.string(),
+    greetingText: z.string().min(1),
+    scheduleWaypoints: z.array(VillagerWaypointSchema),
+    portraitAssetId: z.string().min(1).optional(),
+    spriteAssetId: z.string().min(1).optional(),
+  })
+  .strict();
+
 const ProjectConfigOptionSchema = z
   .object({
     id: z.string().min(1),
@@ -283,6 +315,7 @@ export const SdvProjectSchema: z.ZodType<SdvProjectFile> = z
         WeaponEditSchema,
         FurnitureEditSchema,
         FishEditSchema,
+        VillagerEditSchema,
       ]),
     ),
     configOptions: z.array(ProjectConfigOptionSchema).optional(),

@@ -32,6 +32,7 @@ import type {
   SdvProjectEdit,
   SdvProjectMetadata,
   ShopEditEntry,
+  VillagerEditEntry,
   WeaponEditEntry,
 } from '../data/models/index.js';
 import {
@@ -55,6 +56,7 @@ import {
   QuickLaunchPanel,
   RetexturePatcher,
   ShopMailEditor,
+  VillagerCreator,
   type TutorialTargetTab,
 } from './components/index.js';
 import './styles.css';
@@ -74,6 +76,7 @@ type EditorTab =
   | 'animals'
   | 'furniture'
   | 'fish'
+  | 'villagers'
   | 'config'
   | 'pixel'
   | 'i18n'
@@ -452,6 +455,8 @@ export function App(): React.JSX.Element {
     activeProject?.edits.filter((e): e is FurnitureEditEntry => e.kind === 'furniture') ?? [];
   const fishEdits: readonly FishEditEntry[] =
     activeProject?.edits.filter((e): e is FishEditEntry => e.kind === 'fish') ?? [];
+  const villagerEdits: readonly VillagerEditEntry[] =
+    activeProject?.edits.filter((e): e is VillagerEditEntry => e.kind === 'villager') ?? [];
 
   const handleSavePixelSprite = (newAsset: LinkedAssetEntry): void => {
     if (activeProject === null) {
@@ -623,6 +628,7 @@ export function App(): React.JSX.Element {
                   'animals',
                   'furniture',
                   'fish',
+                  'villagers',
                   'retexture',
                   'pixel',
                   'preview',
@@ -641,6 +647,7 @@ export function App(): React.JSX.Element {
                   'animals',
                   'furniture',
                   'fish',
+                  'villagers',
                   'retexture',
                   'pixel',
                   'preview',
@@ -675,7 +682,9 @@ export function App(): React.JSX.Element {
                                   ? '9. Furniture'
                                   : tab === 'fish'
                                     ? '10. Fish'
-                                    : tab === 'retexture'
+                                    : tab === 'villagers'
+                                      ? '11. Custom NPCs'
+                                      : tab === 'retexture'
                                       ? '11. Sprites'
                                       : tab === 'pixel'
                                         ? '12. Draw Sprite'
@@ -875,6 +884,24 @@ export function App(): React.JSX.Element {
                     );
                   }}
                   onRemoveFish={(id) => {
+                    updateProjectEdits(activeProject.edits.filter((item) => item.id !== id));
+                  }}
+                />
+              )}
+              {activeTab === 'villagers' && (
+                <VillagerCreator
+                  uniqueId={activeProject.metadata.uniqueId}
+                  villagers={villagerEdits}
+                  assets={activeProject.assets}
+                  onAddVillager={(entry) => {
+                    updateProjectEdits([...activeProject.edits, entry]);
+                  }}
+                  onUpdateVillager={(entry) => {
+                    updateProjectEdits(
+                      activeProject.edits.map((item) => (item.id === entry.id ? entry : item)),
+                    );
+                  }}
+                  onRemoveVillager={(id) => {
                     updateProjectEdits(activeProject.edits.filter((item) => item.id !== id));
                   }}
                 />

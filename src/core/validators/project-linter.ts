@@ -131,6 +131,7 @@ export function checkGameTargets(
     const isKnown =
       knownTargets.has(edit.target) ||
       edit.target.startsWith('Characters/') ||
+      edit.target.startsWith('Portraits/') ||
       edit.target.startsWith('Data/Events/') ||
       edit.target.startsWith('Mods/');
     if (!isKnown) {

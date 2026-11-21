@@ -219,6 +219,37 @@ export interface FishEditEntry {
   readonly assetId?: string;
 }
 
+export type NpcBirthSeason = 'spring' | 'summer' | 'fall' | 'winter';
+export type NpcHomeRegion = 'Town' | 'Mountain' | 'Forest' | 'Beach';
+
+export interface VillagerScheduleWaypoint {
+  readonly id: string;
+  readonly time: string;
+  readonly map: string;
+  readonly x: number;
+  readonly y: number;
+  readonly facing: 0 | 1 | 2 | 3;
+}
+
+export interface VillagerEditEntry {
+  readonly kind: 'villager';
+  readonly id: string;
+  readonly npcId: string;
+  readonly displayName: string;
+  readonly birthSeason: NpcBirthSeason;
+  readonly birthDay: number;
+  readonly homeRegion: NpcHomeRegion;
+  readonly spawnMap: string;
+  readonly spawnX: number;
+  readonly spawnY: number;
+  readonly lovedItems: string;
+  readonly likedItems: string;
+  readonly greetingText: string;
+  readonly scheduleWaypoints: readonly VillagerScheduleWaypoint[];
+  readonly portraitAssetId?: string;
+  readonly spriteAssetId?: string;
+}
+
 export type SdvProjectEdit =
   | ObjectEditEntry
   | CropEditEntry
@@ -231,7 +262,8 @@ export type SdvProjectEdit =
   | AnimalEditEntry
   | WeaponEditEntry
   | FurnitureEditEntry
-  | FishEditEntry;
+  | FishEditEntry
+  | VillagerEditEntry;
 
 export interface ProjectConfigOption {
   readonly id: string;

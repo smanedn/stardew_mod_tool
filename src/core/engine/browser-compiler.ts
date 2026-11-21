@@ -15,6 +15,7 @@ import type {
   RetextureEditEntry,
   SdvProjectFile,
   ShopEditEntry,
+  VillagerEditEntry,
   WeaponEditEntry,
 } from '../../data/models/index.js';
 import { SecurityError } from '../security/security-error.js';
@@ -531,6 +532,107 @@ function compileFishPatches(
   ];
 }
 
+function buildVillagerLoadPatches(
+  edit: VillagerEditEntry,
+  assetsById: ReadonlyMap<string, LinkedAssetEntry>,
+): readonly ContentPatch[] {
+  const patches: ContentPatch[] = [];
+  const portrait =
+    edit.portraitAssetId !== undefined ? assetsById.get(edit.portraitAssetId) : undefined;
+  const sprite =
+    edit.spriteAssetId !== undefined ? assetsById.get(edit.spriteAssetId) : undefined;
+  if (portrait !== undefined) {
+    patches.push({
+      Action: 'Load',
+      LogName: `Load Portrait: ${edit.npcId}`,
+      Target: `Portraits/${edit.npcId}`,
+      FromFile: portrait.relativePath,
+    });
+  }
+  if (sprite !== undefined) {
+    patches.push({
+      Action: 'Load',
+      LogName: `Load Character Sprite: ${edit.npcId}`,
+      Target: `Characters/${edit.npcId}`,
+      FromFile: sprite.relativePath,
+    });
+  }
+  return patches;
+}
+
+function buildVillagerSchedulePatch(edit: VillagerEditEntry): ContentPatch | null {
+  if (edit.scheduleWaypoints.length === 0) {
+    return null;
+  }
+  const scheduleValue = edit.scheduleWaypoints
+    .map((wp) => `${wp.time} ${wp.map} ${String(wp.x)} ${String(wp.y)} ${String(wp.facing)}`)
+    .join('/');
+  return {
+    Action: 'EditData',
+    LogName: `Schedule: ${edit.npcId}`,
+    Target: `Characters/schedules/${edit.npcId}`,
+    Entries: { spring: scheduleValue },
+  };
+}
+
+function buildVillagerCharacterPatch(edit: VillagerEditEntry): ContentPatch {
+  return {
+    Action: 'EditData',
+    LogName: `Add Villager: ${edit.displayName}`,
+    Target: 'Data/Characters',
+    Entries: {
+      [edit.npcId]: {
+        DisplayName: edit.displayName,
+        BirthSeason: edit.birthSeason,
+        BirthDay: edit.birthDay,
+        HomeRegion: edit.homeRegion,
+        CanSocialize: true,
+        Home: [
+          {
+            Id: 'Default',
+            Location: edit.spawnMap,
+            Tile: { X: edit.spawnX, Y: edit.spawnY },
+            Direction: 'down',
+          },
+        ],
+      },
+    },
+  };
+}
+
+function compileVillagerPatches(
+  edit: VillagerEditEntry,
+  assetsById: ReadonlyMap<string, LinkedAssetEntry>,
+): readonly ContentPatch[] {
+  const patches: ContentPatch[] = [
+    ...buildVillagerLoadPatches(edit, assetsById),
+    buildVillagerCharacterPatch(edit),
+    {
+      Action: 'EditData',
+      LogName: `Villager Dialogue: ${edit.npcId}`,
+      Target: `Characters/Dialogue/${edit.npcId}`,
+      Entries: { Introduction: edit.greetingText, Mon: edit.greetingText },
+    },
+  ];
+  const schedulePatch = buildVillagerSchedulePatch(edit);
+  if (schedulePatch !== null) {
+    patches.push(schedulePatch);
+  }
+  const loved = edit.lovedItems.trim();
+  const liked = edit.likedItems.trim();
+  if (loved.length > 0 || liked.length > 0) {
+    patches.push({
+      Action: 'EditData',
+      LogName: `Villager Gift Tastes: ${edit.npcId}`,
+      Target: 'Data/NPCGiftTastes',
+      Entries: {
+        [edit.npcId]: `Oh, thank you!/ ${loved}/Thanks!/ ${liked}/Hmm.../ /No thanks./ /`,
+      },
+    });
+  }
+  return patches;
+}
+
 function compileSingleEdit(
   edit: SdvProjectFile['edits'][number],
   uniqueId: string,
@@ -561,6 +663,8 @@ function compileSingleEdit(
       return [compileFurniturePatch(edit)];
     case 'fish':
       return compileFishPatches(edit, uniqueId, assetsById);
+    case 'villager':
+      return compileVillagerPatches(edit, assetsById);
   }
 }
 
