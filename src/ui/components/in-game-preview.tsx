@@ -5,6 +5,7 @@ import {
   serializeCleanJson,
 } from '../../core/engine/browser-compiler.js';
 import { createBrowserModZipBytes } from '../../core/engine/browser-zip.js';
+import { generateNexusBbCode } from '../../core/engine/nexus-bbcode.js';
 import {
   detectModsFolderViaTauri,
   detectSvmmViaTauri,
@@ -185,6 +186,24 @@ export function InGamePreview(props: InGamePreviewProps): React.JSX.Element {
     });
   };
 
+  const nexusBbCode = props.project !== undefined ? generateNexusBbCode(props.project) : '';
+
+  const handleCopyBbCode = (): void => {
+    if (nexusBbCode.length === 0) {
+      return;
+    }
+    const clipboard: Clipboard | undefined =
+      typeof navigator !== 'undefined' ? navigator.clipboard : undefined;
+    if (clipboard !== undefined) {
+      void clipboard.writeText(nexusBbCode).then(() => {
+        setExportStatus('Copied Nexus Mods BBCode description to clipboard!');
+        props.onNotifyToast?.('Copied Nexus Mods BBCode!');
+      });
+    } else {
+      setExportStatus('Select and copy the BBCode text below.');
+    }
+  };
+
   return (
     <div className="module-container">
       {props.project !== undefined && (
@@ -238,6 +257,34 @@ export function InGamePreview(props: InGamePreviewProps): React.JSX.Element {
               </button>
             </div>
           )}
+        </div>
+      )}
+
+      {props.project !== undefined && (
+        <div className="module-card">
+          <div className="module-toolbar">
+            <div>
+              <h3>Nexus Mods Description (BBCode)</h3>
+              <span className="muted-text">
+                Auto-generated items, crops, NPC dialogues, and SMAPI/SVMM install instructions
+              </span>
+            </div>
+            <div className="inline-row">
+              <button type="button" className="launch-btn" onClick={handleCopyBbCode}>
+                Copy BBCode
+              </button>
+              <button
+                type="button"
+                className="secondary-btn"
+                onClick={() => {
+                  downloadBlob('nexus-description.bbcode.txt', nexusBbCode, 'text/plain');
+                }}
+              >
+                Download .txt
+              </button>
+            </div>
+          </div>
+          <textarea className="manifest-paste-box" rows={9} readOnly value={nexusBbCode} />
         </div>
       )}
 

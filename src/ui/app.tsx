@@ -587,7 +587,7 @@ export function App(): React.JSX.Element {
           <img src="/logo.png" alt="SVMC Logo" className="hero-logo" />
           <div>
             <h1>Stardew Valley Mod Creator - by Smane</h1>
-            <p className="app-subtitle">Cozy Content Patcher Studio • v0.5.4</p>
+            <p className="app-subtitle">Cozy Content Patcher Studio • v0.5.5</p>
           </div>
         </div>
         <div className="inline-row">

@@ -1,6 +1,6 @@
 [package]
 name = "stardew-mod-tool"
-version = "0.5.4"
+version = "0.5.5"
 description = "Stardew Valley Easy Mod Creator Tool"
 edition = "2021"
 

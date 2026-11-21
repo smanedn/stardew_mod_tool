@@ -9,6 +9,7 @@ export * from './mod-compiler.js';
 export * from './mod-exporter.js';
 export * from './mod-importer.js';
 export * from './mod-readiness.js';
+export * from './nexus-bbcode.js';
 export * from './pixel-grid.js';
 export * from './project-templates.js';
 export * from './recovery-manager.js';
