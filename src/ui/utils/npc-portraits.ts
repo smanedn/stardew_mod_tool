@@ -1,4 +1,5 @@
 import type { PortraitMood } from '../../core/engine/ui-simulator.js';
+import { renderVillagerPortraitDataUri } from './villager-svg-portraits.js';
 
 const BUNDLED_PORTRAITS = import.meta.glob<string>('../../../assets/*_*.png', {
   eager: true,
@@ -26,10 +27,15 @@ function buildPortraitLookup(): ReadonlyMap<string, string> {
 const PORTRAIT_MAP = buildPortraitLookup();
 
 /**
- * Returns a bundled NPC portrait image URL from assets/<Npc>_<Mood>.png when available.
+ * Returns a bundled PNG portrait URL from assets/<Npc>_<Mood>.png if present,
+ * or falls back to a crisp 16x16 pixel-art SVG portrait for all 34 vanilla villagers.
  */
 export function getNpcPortraitSrc(npcName: string, mood: PortraitMood): string | null {
   const npc = npcName.trim().toLowerCase();
   const moodKey = mood.toLowerCase();
-  return PORTRAIT_MAP.get(`${npc}:${moodKey}`) ?? PORTRAIT_MAP.get(`${npc}:neutral`) ?? null;
+  return (
+    PORTRAIT_MAP.get(`${npc}:${moodKey}`) ??
+    PORTRAIT_MAP.get(`${npc}:neutral`) ??
+    renderVillagerPortraitDataUri(npcName, mood)
+  );
 }

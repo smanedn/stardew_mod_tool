@@ -18,9 +18,12 @@ describe('Villager Dialogue & Portrait Fixes', () => {
     expect(parsed.pages).toEqual(['Hi Alex!', 'Welcome to Star Farm!']);
   });
 
-  it('resolves bundled Abigail_Happy.png portrait for Abigail Happy mood', () => {
-    const src = getNpcPortraitSrc('Abigail', 'Happy');
-    expect(src).toBeTruthy();
-    expect(getNpcPortraitSrc('Wizard', 'Sad')).toBeNull();
+  it('resolves Abigail_Happy.png and 16x16 pixel-art SVG portraits for all 34 villagers', () => {
+    expect(getNpcPortraitSrc('Abigail', 'Happy')).toBeTruthy();
+    for (const npc of COMMON_VILLAGERS) {
+      expect(getNpcPortraitSrc(npc, 'Happy')).toBeTruthy();
+      expect(getNpcPortraitSrc(npc, 'Sad')).toBeTruthy();
+    }
+    expect(getNpcPortraitSrc('CustomModNpc', 'Sad')).toBeNull();
   });
 });
