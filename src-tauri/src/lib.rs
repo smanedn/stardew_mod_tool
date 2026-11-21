@@ -1,6 +1,9 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
+use std::io::{BufRead, BufReader};
 use std::path::{Component, Path, PathBuf};
+use std::process::{Command, Stdio};
+use tauri::Emitter;
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -227,6 +230,57 @@ fn export_mod_to_svmm_modpack(
     Ok(target_dir.to_string_lossy().to_string())
 }
 
+#[tauri::command]
+fn launch_smapi(app: tauri::AppHandle) -> Result<(), String> {
+    let mods_dir = detect_stardew_mods_dir()
+        .ok_or_else(|| "Could not locate Stardew Valley/Mods directory.".to_string())?;
+    let game_dir = PathBuf::from(&mods_dir)
+        .parent()
+        .map(Path::to_path_buf)
+        .ok_or_else(|| "Invalid Stardew Valley game directory.".to_string())?;
+
+    let bin_name = if cfg!(target_os = "windows") {
+        "StardewModdingAPI.exe"
+    } else {
+        "StardewModdingAPI"
+    };
+    let smapi_exe = game_dir.join(bin_name);
+    if !smapi_exe.is_file() {
+        return Err(format!("SMAPI binary not found at {}", smapi_exe.display()));
+    }
+
+    let mut child = Command::new(&smapi_exe)
+        .current_dir(&game_dir)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|e| format!("Failed to start SMAPI: {e}"))?;
+
+    if let Some(stdout) = child.stdout.take() {
+        let handle = app.clone();
+        std::thread::spawn(move || {
+            for line in BufReader::new(stdout).lines().map_while(Result::ok) {
+                let _ = handle.emit("smapi-log", line);
+            }
+        });
+    }
+    if let Some(stderr) = child.stderr.take() {
+        let handle = app.clone();
+        std::thread::spawn(move || {
+            for line in BufReader::new(stderr).lines().map_while(Result::ok) {
+                let _ = handle.emit("smapi-log", line);
+            }
+        });
+    }
+
+    std::thread::spawn(move || {
+        let code = child.wait().ok().and_then(|s| s.code());
+        let _ = app.emit("smapi-exit", code);
+    });
+
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -234,7 +288,8 @@ pub fn run() {
             detect_stardew_mods_dir,
             export_mod_files_to_mods,
             detect_svmm_modpacks,
-            export_mod_to_svmm_modpack
+            export_mod_to_svmm_modpack,
+            launch_smapi
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

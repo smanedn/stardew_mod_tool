@@ -3,6 +3,7 @@ export * from './code-inspector.js';
 export * from './config-editor.js';
 export * from './crop-wizard.js';
 export * from './dialogue-editor.js';
+export * from './error-boundary.js';
 export * from './event-builder.js';
 export * from './fish-editor.js';
 export * from './furniture-editor.js';

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   type ModImportResult,
   importContentPatcherMod,
@@ -6,20 +6,14 @@ import {
 } from '../core/engine/mod-importer.js';
 import { computeModReadiness } from '../core/engine/mod-readiness.js';
 import {
+  isTauriDesktopRuntime,
+  launchSmapiViaTauri,
+} from '../core/engine/tauri-bridge.js';
+import {
   type ProjectTemplateId,
   createProjectFromTemplate,
   importManifestJsonToProject,
 } from '../core/engine/project-templates.js';
-import {
-  type UndoRedoHistory,
-  canRedo,
-  canUndo,
-  createStateChangeCommand,
-  createUndoRedoHistory,
-  executeCommand,
-  redoCommand,
-  undoCommand,
-} from '../core/engine/undo-redo.js';
 import { parseProjectJson } from '../core/parsers/project-schema.js';
 import type {
   AnimalEditEntry,
@@ -36,7 +30,6 @@ import type {
   ProjectTranslations,
   RetextureEditEntry,
   SdvProjectEdit,
-  SdvProjectFile,
   SdvProjectMetadata,
   ShopEditEntry,
   WeaponEditEntry,
@@ -47,6 +40,7 @@ import {
   ConfigEditor,
   CropWizard,
   DialogueEditor,
+  ErrorBoundary,
   EventBuilder,
   FishEditor,
   FurnitureEditor,
@@ -64,6 +58,8 @@ import {
   type TutorialTargetTab,
 } from './components/index.js';
 import './styles.css';
+import { useProjectWorkspace } from './hooks/use-project-workspace.js';
+import { useToast } from './hooks/use-toast.js';
 import { playCozyChime } from './utils/cozy-sound.js';
 
 type EditorTab =
@@ -84,7 +80,6 @@ type EditorTab =
   | 'preview'
   | 'launch';
 
-const RECENT_STORAGE_KEY = 'sdv_mod_creator_recent_projects';
 const RECOVERY_STORAGE_KEY = 'sdv_mod_creator_recovery_snapshot';
 const ONBOARDING_STORAGE_KEY = 'sdv_mod_creator_onboarding_done';
 const THEME_STORAGE_KEY = 'sdv_mod_creator_theme';
@@ -121,46 +116,7 @@ function loadInitialOnboarding(): boolean {
   }
 }
 
-function isSdvProjectFile(value: unknown): value is SdvProjectFile {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    'formatVersion' in value &&
-    'metadata' in value &&
-    'edits' in value
-  );
-}
-
-function loadRecentProjects(): readonly SdvProjectFile[] {
-  try {
-    const raw = localStorage.getItem(RECENT_STORAGE_KEY);
-    if (raw === null) {
-      return [];
-    }
-    const parsed: unknown = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.filter(isSdvProjectFile) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveRecentProjects(projects: readonly SdvProjectFile[]): boolean {
-  try {
-    localStorage.setItem(RECENT_STORAGE_KEY, JSON.stringify(projects.slice(0, 8)));
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 export function App(): React.JSX.Element {
-  const [recentProjects, setRecentProjects] = useState<readonly SdvProjectFile[]>(
-    loadRecentProjects,
-  );
-  const [activeProject, setActiveProject] = useState<SdvProjectFile | null>(null);
-  const [history, setHistory] = useState<UndoRedoHistory<SdvProjectFile>>(() =>
-    createUndoRedoHistory<SdvProjectFile>(),
-  );
   const [activeTab, setActiveTab] = useState<EditorTab>('manifest');
   const [advancedMode, setAdvancedMode] = useState<boolean>(false);
   const [showInspector, setShowInspector] = useState<boolean>(false);
@@ -168,36 +124,23 @@ export function App(): React.JSX.Element {
   const [theme, setTheme] = useState<'light' | 'dark'>(loadInitialTheme);
   const [season, setSeason] = useState<ValleySeason>(loadInitialSeason);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
-  const toastTimerRef = useRef<number | null>(null);
-  const saveTimerRef = useRef<number | null>(null);
-
-  const showToast = useCallback(
-    (msg: string, soundKind: 'pop' | 'success' = 'success'): void => {
-      if (toastTimerRef.current !== null) {
-        window.clearTimeout(toastTimerRef.current);
-      }
-      setToastMessage(msg);
-      playCozyChime(soundEnabled, soundKind);
-      toastTimerRef.current = window.setTimeout(() => {
-        setToastMessage(null);
-        toastTimerRef.current = null;
-      }, 2800);
-    },
-    [soundEnabled],
-  );
-
-  useEffect(() => {
-    return (): void => {
-      if (toastTimerRef.current !== null) {
-        window.clearTimeout(toastTimerRef.current);
-      }
-      if (saveTimerRef.current !== null) {
-        window.clearTimeout(saveTimerRef.current);
-      }
-    };
+  const { toastMessage, showToast } = useToast(soundEnabled);
+  const clearImportError = useCallback((): void => {
+    setImportError(null);
   }, []);
+  const {
+    recentProjects,
+    activeProject,
+    undoAvailable,
+    redoAvailable,
+    setActiveProject,
+    openAndRememberProject,
+    applyProjectChange,
+    deleteProject: handleDeleteProject,
+    handleUndo,
+    handleRedo,
+  } = useProjectWorkspace(showToast, clearImportError);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -209,120 +152,6 @@ export function App(): React.JSX.Element {
       // Ignore storage errors.
     }
   }, [theme, season]);
-
-  const scheduleSaveRecent = useCallback(
-    (projects: readonly SdvProjectFile[]): void => {
-      if (saveTimerRef.current !== null) {
-        window.clearTimeout(saveTimerRef.current);
-      }
-      saveTimerRef.current = window.setTimeout(() => {
-        saveTimerRef.current = null;
-        if (!saveRecentProjects(projects)) {
-          showToast('Browser storage quota full — export .sdvproj backup to keep changes.');
-        }
-      }, 300);
-    },
-    [showToast],
-  );
-
-  const persistActiveProject = useCallback(
-    (project: SdvProjectFile): void => {
-      const updated = [
-        project,
-        ...recentProjects.filter((item) => item.metadata.uniqueId !== project.metadata.uniqueId),
-      ];
-      setRecentProjects(updated);
-      scheduleSaveRecent(updated);
-      setActiveProject(project);
-      setImportError(null);
-    },
-    [recentProjects, scheduleSaveRecent],
-  );
-
-  const openAndRememberProject = (project: SdvProjectFile): void => {
-    setHistory(createUndoRedoHistory<SdvProjectFile>());
-    persistActiveProject(project);
-  };
-
-  const handleDeleteProject = (uniqueId: string): void => {
-    const updated = recentProjects.filter((item) => item.metadata.uniqueId !== uniqueId);
-    setRecentProjects(updated);
-    saveRecentProjects(updated);
-    if (activeProject?.metadata.uniqueId === uniqueId) {
-      setActiveProject(null);
-      setHistory(createUndoRedoHistory<SdvProjectFile>());
-    }
-  };
-
-  const applyProjectChange = (label: string, nextProject: SdvProjectFile): void => {
-    if (activeProject === null) {
-      return;
-    }
-    const result = executeCommand(
-      history,
-      activeProject,
-      createStateChangeCommand(label, activeProject, nextProject),
-    );
-    setHistory(result.history);
-    persistActiveProject(result.state);
-  };
-
-  const handleUndo = useCallback((): void => {
-    if (activeProject === null) {
-      return;
-    }
-    const result = undoCommand(history, activeProject);
-    if (result.changed) {
-      setHistory(result.history);
-      persistActiveProject(result.state);
-    }
-  }, [activeProject, history, persistActiveProject]);
-
-  const handleRedo = useCallback((): void => {
-    if (activeProject === null) {
-      return;
-    }
-    const result = redoCommand(history, activeProject);
-    if (result.changed) {
-      setHistory(result.history);
-      persistActiveProject(result.state);
-    }
-  }, [activeProject, history, persistActiveProject]);
-
-  useEffect(() => {
-    const isEditableElement = (target: EventTarget | null): boolean => {
-      if (!(target instanceof HTMLElement)) {
-        return false;
-      }
-      return (
-        target instanceof HTMLInputElement ||
-        target instanceof HTMLTextAreaElement ||
-        target instanceof HTMLSelectElement ||
-        target.isContentEditable
-      );
-    };
-
-    const onKeyDown = (event: KeyboardEvent): void => {
-      if (activeProject === null || (!event.ctrlKey && !event.metaKey)) {
-        return;
-      }
-      if (isEditableElement(event.target)) {
-        return;
-      }
-      const key = event.key.toLowerCase();
-      if (key === 'z' && !event.shiftKey) {
-        event.preventDefault();
-        handleUndo();
-      } else if (key === 'y' || (key === 'z' && event.shiftKey)) {
-        event.preventDefault();
-        handleRedo();
-      }
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return (): void => {
-      window.removeEventListener('keydown', onKeyDown);
-    };
-  }, [activeProject, handleRedo, handleUndo]);
 
   useEffect(() => {
     if (activeProject === null) {
@@ -631,13 +460,14 @@ export function App(): React.JSX.Element {
   };
 
   return (
-    <main className="app-shell">
+    <ErrorBoundary>
+      <main className="app-shell">
       <header className="app-header hero-banner">
         <div className="hero-brand">
           <img src="/logo.png" alt="SVMC Logo" className="hero-logo" />
           <div>
             <h1>Stardew Valley Mod Creator - by Smane</h1>
-            <p className="app-subtitle">Cozy Content Patcher Studio • v0.6.0</p>
+            <p className="app-subtitle">Cozy Content Patcher Studio • v0.8.0</p>
           </div>
         </div>
         <div className="inline-row">
@@ -690,7 +520,7 @@ export function App(): React.JSX.Element {
               <button
                 type="button"
                 className="secondary-btn"
-                disabled={!canUndo(history)}
+                disabled={!undoAvailable}
                 title="Undo (Ctrl+Z)"
                 onClick={handleUndo}
               >
@@ -699,7 +529,7 @@ export function App(): React.JSX.Element {
               <button
                 type="button"
                 className="secondary-btn"
-                disabled={!canRedo(history)}
+                disabled={!redoAvailable}
                 title="Redo (Ctrl+Y)"
                 onClick={handleRedo}
               >
@@ -1063,7 +893,21 @@ export function App(): React.JSX.Element {
                   onNotifyToast={(msg) => { showToast(msg, 'success'); }}
                 />
               )}
-              {activeTab === 'launch' && <QuickLaunchPanel project={activeProject} />}
+              {activeTab === 'launch' && (
+                <QuickLaunchPanel
+                  project={activeProject}
+                  onLaunchSmapi={
+                    isTauriDesktopRuntime()
+                      ? (onLog) =>
+                          launchSmapiViaTauri(
+                            activeProject.metadata.uniqueId,
+                            activeProject.metadata.name,
+                            onLog,
+                          )
+                      : undefined
+                  }
+                />
+              )}
             </div>
             {advancedMode && showInspector && <CodeInspector project={activeProject} />}
           </div>
@@ -1071,5 +915,6 @@ export function App(): React.JSX.Element {
       )}
       {toastMessage !== null && <div className="toast-banner">{toastMessage}</div>}
     </main>
+    </ErrorBoundary>
   );
 }

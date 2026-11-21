@@ -70,6 +70,8 @@ export function PixelEditor(props: PixelEditorProps = {}): React.JSX.Element {
   const [savedNotice, setSavedNotice] = useState<string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const previewCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const isDrawingRef = useRef<boolean>(false);
+  const strokeStartRef = useRef<PixelGrid | null>(null);
 
   useEffect(() => {
     if (canvasRef.current !== null) {
@@ -127,30 +129,66 @@ export function PixelEditor(props: PixelEditorProps = {}): React.JSX.Element {
     commitGrid(createPixelGridFromTemplate(templateId));
   };
 
-  const handleCanvasClick = (event: React.MouseEvent<HTMLCanvasElement>): void => {
+  const getCellCoords = (
+    event: React.PointerEvent<HTMLCanvasElement>,
+  ): { readonly x: number; readonly y: number } | null => {
     const canvas = canvasRef.current;
     if (canvas === null) {
-      return;
+      return null;
     }
     const rect = canvas.getBoundingClientRect();
-    const x = Math.floor((event.clientX - rect.left) / PIXEL_SCALE);
-    const y = Math.floor((event.clientY - rect.top) / PIXEL_SCALE);
+    return {
+      x: Math.floor((event.clientX - rect.left) / PIXEL_SCALE),
+      y: Math.floor((event.clientY - rect.top) / PIXEL_SCALE),
+    };
+  };
 
+  const handlePointerDown = (event: React.PointerEvent<HTMLCanvasElement>): void => {
+    const coords = getCellCoords(event);
+    if (coords === null) {
+      return;
+    }
     if (tool === 'eyedropper') {
-      const picked = getPixelColor(grid, x, y);
+      const picked = getPixelColor(grid, coords.x, coords.y);
       if (picked !== null) {
         setActiveColor(picked);
         setTool('pencil');
       }
       return;
     }
-
     if (tool === 'fill') {
-      commitGrid(floodFillPixels(grid, x, y, activeColor));
+      commitGrid(floodFillPixels(grid, coords.x, coords.y, activeColor));
       return;
     }
+    isDrawingRef.current = true;
+    strokeStartRef.current = grid;
+    setGrid(setPixelColor(grid, coords.x, coords.y, tool === 'eraser' ? null : activeColor));
+  };
 
-    commitGrid(setPixelColor(grid, x, y, tool === 'eraser' ? null : activeColor));
+  const handlePointerMove = (event: React.PointerEvent<HTMLCanvasElement>): void => {
+    if (!isDrawingRef.current || (tool !== 'pencil' && tool !== 'eraser')) {
+      return;
+    }
+    const coords = getCellCoords(event);
+    if (coords === null) {
+      return;
+    }
+    const nextColor = tool === 'eraser' ? null : activeColor;
+    if (getPixelColor(grid, coords.x, coords.y) !== nextColor) {
+      setGrid((prev) => setPixelColor(prev, coords.x, coords.y, nextColor));
+    }
+  };
+
+  const handlePointerEnd = (): void => {
+    if (!isDrawingRef.current) {
+      return;
+    }
+    isDrawingRef.current = false;
+    const startGrid = strokeStartRef.current;
+    strokeStartRef.current = null;
+    if (startGrid !== null && startGrid !== grid) {
+      setUndoStack((prev) => [...prev.slice(-(MAX_CANVAS_UNDO - 1)), startGrid]);
+    }
   };
 
   const buildExportDataUrl = (): string | null => {
@@ -227,6 +265,7 @@ export function PixelEditor(props: PixelEditorProps = {}): React.JSX.Element {
         ))}
         <input
           type="color"
+          aria-label="Custom color picker"
           value={activeColor}
           onChange={(e) => { setActiveColor(e.target.value); }}
         />
@@ -234,6 +273,7 @@ export function PixelEditor(props: PixelEditorProps = {}): React.JSX.Element {
           <button
             key={swatch}
             type="button"
+            aria-label={`Select color ${swatch}`}
             className="swatch-btn"
             style={{ backgroundColor: swatch }}
             onClick={() => {
@@ -296,8 +336,12 @@ export function PixelEditor(props: PixelEditorProps = {}): React.JSX.Element {
           ref={canvasRef}
           width={grid.width * PIXEL_SCALE}
           height={grid.height * PIXEL_SCALE}
+          aria-label="Pixel art sprite canvas"
           className="pixel-canvas"
-          onClick={handleCanvasClick}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerEnd}
+          onPointerLeave={handlePointerEnd}
         />
         <div className="pixel-live-preview">
           <span className="muted-text">Live Sprite Preview (4x)</span>

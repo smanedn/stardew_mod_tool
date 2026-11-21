@@ -167,6 +167,7 @@ const WeaponEditSchema = z
     critChance: z.number().min(0).max(1),
     speed: z.number().int().min(-10).max(10),
     defense: z.number().int().min(0).max(20),
+    assetId: z.string().min(1).optional(),
   })
   .strict();
 
@@ -197,6 +198,7 @@ const FishEditSchema = z
     weather: z.enum(['sunny', 'rainy', 'both']),
     waterLocation: z.enum(['River', 'Ocean', 'Lake']),
     price: z.number().int().min(0),
+    assetId: z.string().min(1).optional(),
   })
   .strict();
 

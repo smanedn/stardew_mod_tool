@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
+import { listen } from '@tauri-apps/api/event';
 import type { SdvProjectFile } from '../../data/models/index.js';
 import {
   compileProjectToContentJson,
@@ -8,6 +9,7 @@ import {
 import { formatBrowserZipRootName } from './browser-zip.js';
 import { compileDefaultConfigJson } from './config-schema-builder.js';
 import { buildLocaleFileMap } from './i18n-generator.js';
+import { type SmapiLogEntry, parseSmapiLogLine } from './smapi-log-parser.js';
 
 export interface TauriExportFilePayload {
   readonly relativePath: string;
@@ -128,5 +130,31 @@ export async function exportModToModsViaTauri(
     modsDir,
     modFolderName: folderName,
     files,
+  });
+}
+
+/**
+ * Launches StardewModdingAPI via Tauri and streams parsed log lines until exit.
+ */
+export async function launchSmapiViaTauri(
+  modUniqueId: string,
+  modName: string,
+  onLogEntry: (entry: SmapiLogEntry) => void,
+): Promise<void> {
+  const unlistenLog = await listen<string>('smapi-log', (event) => {
+    onLogEntry(parseSmapiLogLine(event.payload, modUniqueId, modName));
+  });
+
+  await new Promise<void>((resolve, reject) => {
+    void listen<number | null>('smapi-exit', () => {
+      unlistenLog();
+      resolve();
+    }).then((unlistenExit) => {
+      void invoke('launch_smapi').catch((err: unknown) => {
+        unlistenLog();
+        unlistenExit();
+        reject(err instanceof Error ? err : new Error(String(err)));
+      });
+    });
   });
 }

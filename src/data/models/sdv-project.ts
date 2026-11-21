@@ -148,6 +148,7 @@ export interface WeaponEditEntry {
   readonly critChance: number;
   readonly speed: number;
   readonly defense: number;
+  readonly assetId?: string;
 }
 
 export type FurnitureTypeId = 'chair' | 'table' | 'rug' | 'lamp' | 'painting';
@@ -181,6 +182,7 @@ export interface FishEditEntry {
   readonly weather: FishWeatherId;
   readonly waterLocation: FishLocationId;
   readonly price: number;
+  readonly assetId?: string;
 }
 
 export type SdvProjectEdit =

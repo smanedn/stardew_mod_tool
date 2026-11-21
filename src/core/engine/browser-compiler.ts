@@ -115,24 +115,41 @@ function buildObjectBuffs(buff: ObjectEditEntry['buff']): readonly unknown[] | u
   ];
 }
 
+function resolveSpriteTexture(
+  assetId: string | undefined,
+  uniqueId: string,
+  assetsById: ReadonlyMap<string, LinkedAssetEntry>,
+  label: string,
+): { readonly loadPatch: ContentPatch | null; readonly textureTarget: string | null } {
+  const linked = assetId !== undefined ? assetsById.get(assetId) : undefined;
+  if (linked === undefined) {
+    return { loadPatch: null, textureTarget: null };
+  }
+  const textureTarget = `Mods/${uniqueId}/${linked.id}`;
+  return {
+    textureTarget,
+    loadPatch: {
+      Action: 'Load',
+      LogName: `Load Sprite: ${label}`,
+      Target: textureTarget,
+      FromFile: linked.relativePath,
+    },
+  };
+}
+
 function compileObjectPatches(
   edit: ObjectEditEntry,
   uniqueId: string,
   assetsById: ReadonlyMap<string, LinkedAssetEntry>,
 ): readonly ContentPatch[] {
   const buffs = buildObjectBuffs(edit.buff);
-  const linkedAsset = edit.assetId !== undefined ? assetsById.get(edit.assetId) : undefined;
-  const textureTarget = linkedAsset !== undefined ? `Mods/${uniqueId}/${linkedAsset.id}` : null;
-  const patches: ContentPatch[] = [];
-
-  if (linkedAsset !== undefined && textureTarget !== null) {
-    patches.push({
-      Action: 'Load',
-      LogName: `Load Object Sprite: ${edit.displayName}`,
-      Target: textureTarget,
-      FromFile: linkedAsset.relativePath,
-    });
-  }
+  const { loadPatch, textureTarget } = resolveSpriteTexture(
+    edit.assetId,
+    uniqueId,
+    assetsById,
+    edit.displayName,
+  );
+  const patches: ContentPatch[] = loadPatch !== null ? [loadPatch] : [];
 
   patches.push({
     Action: 'EditData',
@@ -177,8 +194,18 @@ function compileObjectRecipePatch(edit: ObjectEditEntry): ContentPatch | null {
   };
 }
 
-function compileCropPatch(edit: CropEditEntry): ContentPatch {
-  return {
+function compileCropPatches(
+  edit: CropEditEntry,
+  uniqueId: string,
+  assetsById: ReadonlyMap<string, LinkedAssetEntry>,
+): readonly ContentPatch[] {
+  const { loadPatch, textureTarget } = resolveSpriteTexture(
+    edit.assetId,
+    uniqueId,
+    assetsById,
+    edit.seedItemId,
+  );
+  const cropPatch: ContentPatch = {
     Action: 'EditData',
     LogName: `Add Crop: ${edit.seedItemId}`,
     Target: 'Data/Crops',
@@ -187,9 +214,11 @@ function compileCropPatch(edit: CropEditEntry): ContentPatch {
         Seasons: edit.seasons,
         DaysInPhase: edit.daysInPhase,
         HarvestItemId: edit.harvestItemId,
+        ...(textureTarget !== null ? { Texture: textureTarget, SpriteIndex: 0 } : {}),
       },
     },
   };
+  return loadPatch !== null ? [loadPatch, cropPatch] : [cropPatch];
 }
 
 function compileRetexturePatch(
@@ -324,8 +353,18 @@ const WEAPON_TYPE_CODE: Readonly<Record<WeaponEditEntry['weaponType'], number>> 
   Club: 2,
 };
 
-function compileWeaponPatch(edit: WeaponEditEntry): ContentPatch {
-  return {
+function compileWeaponPatches(
+  edit: WeaponEditEntry,
+  uniqueId: string,
+  assetsById: ReadonlyMap<string, LinkedAssetEntry>,
+): readonly ContentPatch[] {
+  const { loadPatch, textureTarget } = resolveSpriteTexture(
+    edit.assetId,
+    uniqueId,
+    assetsById,
+    edit.displayName,
+  );
+  const weaponPatch: ContentPatch = {
     Action: 'EditData',
     LogName: `Add Weapon: ${edit.displayName}`,
     Target: 'Data/Weapons',
@@ -340,9 +379,11 @@ function compileWeaponPatch(edit: WeaponEditEntry): ContentPatch {
         Speed: edit.speed,
         Defense: edit.defense,
         Type: WEAPON_TYPE_CODE[edit.weaponType],
+        ...(textureTarget !== null ? { Texture: textureTarget, SpriteIndex: 0 } : {}),
       },
     },
   };
+  return loadPatch !== null ? [loadPatch, weaponPatch] : [weaponPatch];
 }
 
 const FURNITURE_TILE_DIMS: Readonly<Record<FurnitureEditEntry['tileSize'], string>> = {
@@ -378,7 +419,10 @@ const FISH_LOCATION_MAP: Readonly<Record<FishEditEntry['waterLocation'], string>
   Lake: 'Mountain',
 };
 
-function buildFishObjectPatch(edit: FishEditEntry): ContentPatch {
+function buildFishObjectPatch(
+  edit: FishEditEntry,
+  textureTarget: string | null,
+): ContentPatch {
   return {
     Action: 'EditData',
     LogName: `Add Fish Object: ${edit.displayName}`,
@@ -391,14 +435,14 @@ function buildFishObjectPatch(edit: FishEditEntry): ContentPatch {
         Price: edit.price,
         Edibility: -300,
         Category: -4,
+        ...(textureTarget !== null ? { Texture: textureTarget, SpriteIndex: 0 } : {}),
       },
     },
   };
 }
 
-function compileFishPatches(edit: FishEditEntry): readonly ContentPatch[] {
-  const seasonsStr = edit.seasons.map((s) => s.toLowerCase()).join(' ');
-  const fishValue = [
+function formatFishDataValue(edit: FishEditEntry, seasonsStr: string): string {
+  return [
     edit.displayName,
     String(edit.difficulty),
     edit.behavior,
@@ -413,10 +457,25 @@ function compileFishPatches(edit: FishEditEntry): readonly ContentPatch[] {
     '.1',
     '0',
   ].join('/');
+}
 
+function compileFishPatches(
+  edit: FishEditEntry,
+  uniqueId: string,
+  assetsById: ReadonlyMap<string, LinkedAssetEntry>,
+): readonly ContentPatch[] {
+  const { loadPatch, textureTarget } = resolveSpriteTexture(
+    edit.assetId,
+    uniqueId,
+    assetsById,
+    edit.displayName,
+  );
+  const seasonsStr = edit.seasons.map((s) => s.toLowerCase()).join(' ');
+  const fishValue = formatFishDataValue(edit, seasonsStr);
   const locationKey = FISH_LOCATION_MAP[edit.waterLocation];
   return [
-    buildFishObjectPatch(edit),
+    ...(loadPatch !== null ? [loadPatch] : []),
+    buildFishObjectPatch(edit, textureTarget),
     {
       Action: 'EditData',
       LogName: `Add Fish: ${edit.displayName}`,
@@ -445,7 +504,7 @@ function compileSingleEdit(
     case 'object':
       return compileObjectPatches(edit, uniqueId, assetsById);
     case 'crop':
-      return [compileCropPatch(edit)];
+      return compileCropPatches(edit, uniqueId, assetsById);
     case 'retexture':
       return [compileRetexturePatch(edit, assetsById)];
     case 'dialogue':
@@ -461,11 +520,11 @@ function compileSingleEdit(
     case 'animal':
       return [compileAnimalPatch(edit)];
     case 'weapon':
-      return [compileWeaponPatch(edit)];
+      return compileWeaponPatches(edit, uniqueId, assetsById);
     case 'furniture':
       return [compileFurniturePatch(edit)];
     case 'fish':
-      return compileFishPatches(edit);
+      return compileFishPatches(edit, uniqueId, assetsById);
   }
 }
 
