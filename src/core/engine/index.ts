@@ -7,6 +7,7 @@ export * from './i18n-generator.js';
 export * from './id-version-generator.js';
 export * from './mod-compiler.js';
 export * from './mod-exporter.js';
+export * from './mod-importer.js';
 export * from './mod-readiness.js';
 export * from './pixel-grid.js';
 export * from './project-templates.js';

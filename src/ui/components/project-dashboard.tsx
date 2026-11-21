@@ -12,6 +12,8 @@ export interface ProjectDashboardProps {
   readonly onOpenRecent: (project: SdvProjectFile) => void;
   readonly onDeleteRecent: (uniqueId: string) => void;
   readonly onImportManifest: (manifestJson: string) => void;
+  readonly onImportModFiles: (manifestJson: string, contentJson: string) => void;
+  readonly onImportZip: (zipBytes: Uint8Array) => void;
   readonly onImportProjectBackup: (projectJson: string) => void;
   readonly importError: string | null;
 }
@@ -32,21 +34,53 @@ const FRIENDLY_TITLES: Readonly<Record<ProjectTemplateId, string>> = {
 
 function ImportModSection(props: {
   readonly onImport: (json: string) => void;
+  readonly onImportModFiles: (manifestJson: string, contentJson: string) => void;
+  readonly onImportZip: (zipBytes: Uint8Array) => void;
   readonly onImportBackup: (json: string) => void;
   readonly error: string | null;
 }): React.JSX.Element {
   const [open, setOpen] = useState(false);
   const [manifestText, setManifestText] = useState('');
+  const [contentText, setContentText] = useState('');
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>): void => {
+  const handleZipChange = (event: React.ChangeEvent<HTMLInputElement>): void => {
     const file = event.target.files?.[0];
     if (file === undefined) {
       return;
     }
-    void file.text().then((text) => {
-      setManifestText(text);
-      props.onImport(text);
+    void file.arrayBuffer().then((buffer) => {
+      props.onImportZip(new Uint8Array(buffer));
     });
+  };
+
+  const handleModFilesChange = (event: React.ChangeEvent<HTMLInputElement>): void => {
+    const fileList = event.target.files;
+    if (fileList === null || fileList.length === 0) {
+      return;
+    }
+    const files = Array.from(fileList);
+    const loadText = async (file: File): Promise<{ name: string; text: string }> => ({
+      name: file.name.toLowerCase(),
+      text: await file.text(),
+    });
+    void Promise.all(files.map(loadText)).then((loaded) => {
+        const manifestFile = loaded.find((f) => f.name === 'manifest.json');
+        const contentFile = loaded.find((f) => f.name === 'content.json');
+        const nextManifest = manifestFile?.text ?? manifestText;
+        const nextContent = contentFile?.text ?? contentText;
+        if (manifestFile !== undefined) {
+          setManifestText(manifestFile.text);
+        }
+        if (contentFile !== undefined) {
+          setContentText(contentFile.text);
+        }
+        if (nextManifest.trim().length > 0 && nextContent.trim().length > 0) {
+          props.onImportModFiles(nextManifest, nextContent);
+        } else if (manifestFile !== undefined) {
+          props.onImport(manifestFile.text);
+        }
+      },
+    );
   };
 
   const handleBackupChange = (event: React.ChangeEvent<HTMLInputElement>): void => {
@@ -65,7 +99,7 @@ function ImportModSection(props: {
         <div>
           <h3>Already have a mod or backup?</h3>
           <span className="muted-text">
-            Restore a saved .sdvproj.json backup or import an existing manifest.json
+            Import a .zip Content Patcher mod, manifest.json + content.json, or .sdvproj.json backup
           </span>
         </div>
         <button
@@ -80,18 +114,28 @@ function ImportModSection(props: {
         <>
           <div className="import-controls">
             <label className="launch-btn">
-              Restore .sdvproj.json
-              <input type="file" accept=".json,.sdvproj" onChange={handleBackupChange} hidden />
+              Import Mod (.zip)
+              <input type="file" accept=".zip" onChange={handleZipChange} hidden />
             </label>
             <label className="file-upload-btn">
-              Choose manifest.json File
-              <input type="file" accept=".json" onChange={handleFileChange} hidden />
+              Choose manifest.json / content.json
+              <input type="file" accept=".json" multiple onChange={handleModFilesChange} hidden />
+            </label>
+            <label className="secondary-btn">
+              Restore .sdvproj.json
+              <input type="file" accept=".json,.sdvproj" onChange={handleBackupChange} hidden />
             </label>
             <button
               type="button"
               className="secondary-btn"
               disabled={manifestText.trim().length === 0}
-              onClick={() => { props.onImport(manifestText); }}
+              onClick={() => {
+                if (contentText.trim().length > 0) {
+                  props.onImportModFiles(manifestText, contentText);
+                } else {
+                  props.onImport(manifestText);
+                }
+              }}
             >
               Open Pasted Mod
             </button>
@@ -99,9 +143,16 @@ function ImportModSection(props: {
           <textarea
             className="manifest-paste-box"
             rows={4}
-            placeholder="Or paste your manifest.json text here..."
+            placeholder="Paste manifest.json text here..."
             value={manifestText}
             onChange={(e) => { setManifestText(e.target.value); }}
+          />
+          <textarea
+            className="manifest-paste-box"
+            rows={4}
+            placeholder="Optional: paste content.json text here to load items, crops & dialogues..."
+            value={contentText}
+            onChange={(e) => { setContentText(e.target.value); }}
           />
           {props.error !== null && <p className="field-error">{props.error}</p>}
         </>
@@ -205,6 +256,8 @@ export function ProjectDashboard(props: ProjectDashboardProps): React.JSX.Elemen
 
       <ImportModSection
         onImport={props.onImportManifest}
+        onImportModFiles={props.onImportModFiles}
+        onImportZip={props.onImportZip}
         onImportBackup={props.onImportProjectBackup}
         error={props.importError}
       />

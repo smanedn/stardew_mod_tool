@@ -1,4 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
+import {
+  type ModImportResult,
+  importContentPatcherMod,
+  importModFromZipBytes,
+} from '../core/engine/mod-importer.js';
 import { computeModReadiness } from '../core/engine/mod-readiness.js';
 import {
   type ProjectTemplateId,
@@ -309,6 +314,24 @@ export function App(): React.JSX.Element {
     setActiveTab(nextTab);
   };
 
+  const applyImportedModResult = (result: ModImportResult): void => {
+    const { project, summary } = result;
+    openAndRememberProject(project);
+    if (summary.itemsCount > 0) {
+      setActiveTab('objects');
+    } else if (summary.cropsCount > 0) {
+      setActiveTab('crops');
+    } else if (summary.dialoguesCount > 0) {
+      setActiveTab('dialogue');
+    } else {
+      setActiveTab('manifest');
+    }
+    showToast(
+      `Imported "${project.metadata.name}": ${String(summary.itemsCount)} items, ` +
+        `${String(summary.cropsCount)} crops, ${String(summary.dialoguesCount)} dialogues`,
+    );
+  };
+
   const handleImportManifest = (manifestJson: string): void => {
     try {
       openAndRememberProject(importManifestJsonToProject(manifestJson));
@@ -317,6 +340,24 @@ export function App(): React.JSX.Element {
     } catch (error: unknown) {
       setImportError(error instanceof Error ? error.message : 'Failed to parse manifest.json.');
     }
+  };
+
+  const handleImportModFiles = (manifestJson: string, contentJson: string): void => {
+    try {
+      applyImportedModResult(importContentPatcherMod({ manifestJson, contentJson }));
+    } catch (error: unknown) {
+      setImportError(error instanceof Error ? error.message : 'Failed to import mod files.');
+    }
+  };
+
+  const handleImportZip = (zipBytes: Uint8Array): void => {
+    void importModFromZipBytes(zipBytes)
+      .then((result) => {
+        applyImportedModResult(result);
+      })
+      .catch((error: unknown) => {
+        setImportError(error instanceof Error ? error.message : 'Failed to import .zip mod.');
+      });
   };
 
   const handleImportProjectBackup = (projectJson: string): void => {
@@ -546,7 +587,7 @@ export function App(): React.JSX.Element {
           <img src="/logo.png" alt="SVMC Logo" className="hero-logo" />
           <div>
             <h1>Stardew Valley Mod Creator - by Smane</h1>
-            <p className="app-subtitle">Cozy Content Patcher Studio • v0.5.2</p>
+            <p className="app-subtitle">Cozy Content Patcher Studio • v0.5.3</p>
           </div>
         </div>
         <div className="inline-row">
@@ -661,6 +702,8 @@ export function App(): React.JSX.Element {
           onOpenRecent={openAndRememberProject}
           onDeleteRecent={handleDeleteProject}
           onImportManifest={handleImportManifest}
+          onImportModFiles={handleImportModFiles}
+          onImportZip={handleImportZip}
           onImportProjectBackup={handleImportProjectBackup}
           importError={importError}
         />
