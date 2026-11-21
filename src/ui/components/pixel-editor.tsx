@@ -1,9 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   type PixelGrid,
+  type PixelTemplateId,
   SPRITE_CANVAS_PRESETS,
+  SPRITE_TEMPLATES,
   type SpriteCanvasSizeId,
   createPixelGrid,
+  createPixelGridFromTemplate,
+  floodFillPixels,
   getPixelColor,
   setPixelColor,
 } from '../../core/engine/pixel-grid.js';
@@ -14,7 +18,9 @@ export interface PixelEditorProps {
   readonly onSaveSpriteToMod?: (asset: LinkedAssetEntry) => void;
 }
 
-type PixelTool = 'pencil' | 'eyedropper' | 'eraser';
+type PixelTool = 'pencil' | 'fill' | 'eyedropper' | 'eraser';
+
+const MAX_CANVAS_UNDO = 40;
 
 const PIXEL_SCALE = 14;
 const QUICK_PALETTE: readonly string[] = [
@@ -57,6 +63,7 @@ function drawGridToCanvas(
 export function PixelEditor(props: PixelEditorProps = {}): React.JSX.Element {
   const [sizeId, setSizeId] = useState<SpriteCanvasSizeId>('16x16');
   const [grid, setGrid] = useState<PixelGrid>(() => createPixelGrid(16, 16));
+  const [undoStack, setUndoStack] = useState<readonly PixelGrid[]>([]);
   const [tool, setTool] = useState<PixelTool>('pencil');
   const [activeColor, setActiveColor] = useState<string>('#d97706');
   const [showGrid, setShowGrid] = useState<boolean>(true);
@@ -84,6 +91,26 @@ export function PixelEditor(props: PixelEditorProps = {}): React.JSX.Element {
     }
   }, [grid, showGrid]);
 
+  const commitGrid = (nextGrid: PixelGrid): void => {
+    if (nextGrid === grid) {
+      return;
+    }
+    setUndoStack((prev) => [...prev.slice(-(MAX_CANVAS_UNDO - 1)), grid]);
+    setGrid(nextGrid);
+  };
+
+  const handleCanvasUndo = (): void => {
+    if (undoStack.length === 0) {
+      return;
+    }
+    const previous = undoStack[undoStack.length - 1];
+    if (previous === undefined) {
+      return;
+    }
+    setUndoStack((prev) => prev.slice(0, -1));
+    setGrid(previous);
+  };
+
   const handleSizeChange = (nextId: SpriteCanvasSizeId): void => {
     const preset = SPRITE_CANVAS_PRESETS.find((p) => p.id === nextId) ?? {
       id: '16x16' as const,
@@ -91,7 +118,13 @@ export function PixelEditor(props: PixelEditorProps = {}): React.JSX.Element {
       height: 16,
     };
     setSizeId(preset.id);
+    setUndoStack([]);
     setGrid(createPixelGrid(preset.width, preset.height));
+  };
+
+  const handleApplyTemplate = (templateId: PixelTemplateId): void => {
+    setSizeId('16x16');
+    commitGrid(createPixelGridFromTemplate(templateId));
   };
 
   const handleCanvasClick = (event: React.MouseEvent<HTMLCanvasElement>): void => {
@@ -112,7 +145,12 @@ export function PixelEditor(props: PixelEditorProps = {}): React.JSX.Element {
       return;
     }
 
-    setGrid(setPixelColor(grid, x, y, tool === 'eraser' ? null : activeColor));
+    if (tool === 'fill') {
+      commitGrid(floodFillPixels(grid, x, y, activeColor));
+      return;
+    }
+
+    commitGrid(setPixelColor(grid, x, y, tool === 'eraser' ? null : activeColor));
   };
 
   const buildExportDataUrl = (): string | null => {
@@ -177,14 +215,14 @@ export function PixelEditor(props: PixelEditorProps = {}): React.JSX.Element {
       </div>
 
       <div className="token-toolbar">
-        {(['pencil', 'eyedropper', 'eraser'] as const).map((t) => (
+        {(['pencil', 'fill', 'eyedropper', 'eraser'] as const).map((t) => (
           <button
             key={t}
             type="button"
             className={tool === t ? 'season-btn active' : 'season-btn'}
             onClick={() => { setTool(t); }}
           >
-            {t.charAt(0).toUpperCase() + t.slice(1)}
+            {t === 'fill' ? 'Fill Bucket' : t.charAt(0).toUpperCase() + t.slice(1)}
           </button>
         ))}
         <input
@@ -200,10 +238,20 @@ export function PixelEditor(props: PixelEditorProps = {}): React.JSX.Element {
             style={{ backgroundColor: swatch }}
             onClick={() => {
               setActiveColor(swatch);
-              setTool('pencil');
+              if (tool === 'eyedropper' || tool === 'eraser') {
+                setTool('pencil');
+              }
             }}
           />
         ))}
+        <button
+          type="button"
+          className="secondary-btn"
+          disabled={undoStack.length === 0}
+          onClick={handleCanvasUndo}
+        >
+          Undo ({String(undoStack.length)})
+        </button>
         <button
           type="button"
           className="secondary-btn"
@@ -214,7 +262,7 @@ export function PixelEditor(props: PixelEditorProps = {}): React.JSX.Element {
         <button
           type="button"
           className="secondary-btn"
-          onClick={() => { setGrid(createPixelGrid(grid.width, grid.height)); }}
+          onClick={() => { commitGrid(createPixelGrid(grid.width, grid.height)); }}
         >
           Clear
         </button>
@@ -226,6 +274,20 @@ export function PixelEditor(props: PixelEditorProps = {}): React.JSX.Element {
             Add Sprite to Mod
           </button>
         )}
+      </div>
+
+      <div className="token-toolbar">
+        <span className="muted-text">16x16 Starter Outlines:</span>
+        {SPRITE_TEMPLATES.map((tpl) => (
+          <button
+            key={tpl.id}
+            type="button"
+            className="secondary-btn"
+            onClick={() => { handleApplyTemplate(tpl.id); }}
+          >
+            {tpl.label}
+          </button>
+        ))}
       </div>
       {savedNotice !== null && <p className="muted-text">{savedNotice}</p>}
 
