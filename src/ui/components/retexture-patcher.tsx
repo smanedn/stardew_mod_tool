@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import {
+  SPRITESHEET_TARGETS,
   type SpriteGalleryCategory,
+  type SpritesheetTargetInfo,
   VANILLA_SPRITE_GALLERY,
   type VanillaSpritePreset,
   calculateEditImageAreas,
+  computeTileToArea,
 } from '../../core/engine/sprite-patcher.js';
-import type { LinkedAssetEntry, RetextureEditEntry } from '../../data/models/index.js';
+import type { AreaRect, LinkedAssetEntry, RetextureEditEntry } from '../../data/models/index.js';
 
 export interface RetexturePatcherProps {
   readonly retextures: readonly RetextureEditEntry[];
@@ -60,17 +63,103 @@ const DEFAULT_PRESET: VanillaSpritePreset = {
   sheetColumns: 21,
 };
 
+function TileGridPickerCard(props: {
+  readonly activeSheet: SpritesheetTargetInfo;
+  readonly selectedTile: { readonly col: number; readonly row: number };
+  readonly onSelectSheet: (sheet: SpritesheetTargetInfo) => void;
+  readonly onSelectTile: (col: number, row: number) => void;
+}): React.JSX.Element {
+  const rows = Array.from({ length: props.activeSheet.previewRows }, (_, r) => r);
+  const cols = Array.from({ length: props.activeSheet.columns }, (_, c) => c);
+  const area = computeTileToArea(
+    props.selectedTile.col,
+    props.selectedTile.row,
+    props.activeSheet.tileWidth,
+    props.activeSheet.tileHeight,
+  );
+
+  return (
+    <div className="module-card">
+      <h3>Visual 16x16 Spritesheet Tile Picker</h3>
+      <div className="inline-row">
+        {SPRITESHEET_TARGETS.map((sheet) => (
+          <button
+            key={sheet.target}
+            type="button"
+            className={props.activeSheet.target === sheet.target ? 'season-btn active' : 'season-btn'}
+            onClick={() => { props.onSelectSheet(sheet); }}
+          >
+            {sheet.label}
+          </button>
+        ))}
+      </div>
+      <div
+        className="spritesheet-tile-grid"
+        style={{ gridTemplateColumns: `repeat(${String(props.activeSheet.columns)}, 1fr)` }}
+        aria-label={`${props.activeSheet.target} 16x16 tile grid`}
+      >
+        {rows.flatMap((r) =>
+          cols.map((c) => {
+            const idx = r * props.activeSheet.columns + c;
+            const isSelected = props.selectedTile.col === c && props.selectedTile.row === r;
+            return (
+              <button
+                key={idx}
+                type="button"
+                className={isSelected ? 'spritesheet-tile active' : 'spritesheet-tile'}
+                title={`Tile #${String(idx)} (X:${String(c * 16)}, Y:${String(r * 16)})`}
+                onClick={() => { props.onSelectTile(c, r); }}
+              >
+                {String(idx)}
+              </button>
+            );
+          }),
+        )}
+      </div>
+      <p className="muted-text">
+        Selected ToArea: X={String(area.X)}, Y={String(area.Y)}, Width={String(area.Width)}, Height=
+        {String(area.Height)}
+      </p>
+    </div>
+  );
+}
+
 export function RetexturePatcher(props: RetexturePatcherProps): React.JSX.Element {
   const [categoryFilter, setCategoryFilter] = useState<'All' | SpriteGalleryCategory>('All');
   const [selectedPreset, setSelectedPreset] = useState<VanillaSpritePreset>(
     VANILLA_SPRITE_GALLERY[0] ?? DEFAULT_PRESET,
   );
+  const [activeSheet, setActiveSheet] = useState<SpritesheetTargetInfo>(
+    SPRITESHEET_TARGETS[0] ?? {
+      target: 'Maps/springobjects',
+      label: 'Maps/springobjects',
+      columns: 16,
+      previewRows: 6,
+      tileWidth: 16,
+      tileHeight: 16,
+    },
+  );
+  const [selectedTile, setSelectedTile] = useState<{ readonly col: number; readonly row: number }>({
+    col: 0,
+    row: 0,
+  });
+  const [useTilePicker, setUseTilePicker] = useState<boolean>(false);
   const [uploadInfo, setUploadInfo] = useState<string | null>(null);
 
   const filteredGallery =
     categoryFilter === 'All'
       ? VANILLA_SPRITE_GALLERY
       : VANILLA_SPRITE_GALLERY.filter((item) => item.category === categoryFilter);
+
+  const activeTarget = useTilePicker ? activeSheet.target : selectedPreset.target;
+  const activeToArea: AreaRect = useTilePicker
+    ? computeTileToArea(
+        selectedTile.col,
+        selectedTile.row,
+        activeSheet.tileWidth,
+        activeSheet.tileHeight,
+      )
+    : calculateEditImageAreas(selectedPreset).toArea;
 
   const handleSpriteUpload = (event: React.ChangeEvent<HTMLInputElement>): void => {
     const file = event.target.files?.[0];
@@ -79,7 +168,14 @@ export function RetexturePatcher(props: RetexturePatcherProps): React.JSX.Elemen
     }
     void Promise.all([readImageDimensions(file), readFileAsBase64(file)]).then(
       ([{ width, height }, dataBase64]) => {
-        const { fromArea, toArea } = calculateEditImageAreas(selectedPreset, width, height);
+        const fromArea: AreaRect = useTilePicker
+          ? {
+              X: 0,
+              Y: 0,
+              Width: Math.max(1, Math.min(width, 16)),
+              Height: Math.max(1, Math.min(height, 16)),
+            }
+          : calculateEditImageAreas(selectedPreset, width, height).fromArea;
         const assetId = `asset-${String(Date.now())}`;
         const safeName = file.name.toLowerCase().replace(/[^a-z0-9.]+/g, '-');
         const asset: LinkedAssetEntry = {
@@ -92,22 +188,25 @@ export function RetexturePatcher(props: RetexturePatcherProps): React.JSX.Elemen
           {
             kind: 'retexture',
             id: `edit-retexture-${String(Date.now())}`,
-            target: selectedPreset.target,
+            target: activeTarget,
             assetId,
             fromArea,
-            toArea,
+            toArea: activeToArea,
           },
           asset,
         );
         const dims = `${String(width)}x${String(height)}px`;
-        const pos = `${String(toArea.X)}, ${String(toArea.Y)}`;
-        const size = `${String(toArea.Width)}x${String(toArea.Height)}`;
+        const pos = `${String(activeToArea.X)}, ${String(activeToArea.Y)}`;
+        const size = `${String(activeToArea.Width)}x${String(activeToArea.Height)}`;
         setUploadInfo(`Uploaded ${file.name} (${dims}) -> ToArea (${pos}, ${size})`);
       },
     );
   };
 
-  const previewAreas = calculateEditImageAreas(selectedPreset);
+  const previewAreas = {
+    fromArea: calculateEditImageAreas(selectedPreset).fromArea,
+    toArea: activeToArea,
+  };
 
   return (
     <div className="editor-split">
@@ -134,7 +233,10 @@ export function RetexturePatcher(props: RetexturePatcherProps): React.JSX.Elemen
                 className={
                   selectedPreset.id === preset.id ? 'template-card selected-card' : 'template-card'
                 }
-                onClick={() => { setSelectedPreset(preset); }}
+                onClick={() => {
+                  setSelectedPreset(preset);
+                  setUseTilePicker(false);
+                }}
               >
                 <span className="template-badge">{preset.category}</span>
                 <strong>{preset.name}</strong>
@@ -146,11 +248,24 @@ export function RetexturePatcher(props: RetexturePatcherProps): React.JSX.Elemen
           </div>
         </div>
 
+        <TileGridPickerCard
+          activeSheet={activeSheet}
+          selectedTile={selectedTile}
+          onSelectSheet={(sheet) => {
+            setActiveSheet(sheet);
+            setUseTilePicker(true);
+          }}
+          onSelectTile={(col, row) => {
+            setSelectedTile({ col, row });
+            setUseTilePicker(true);
+          }}
+        />
+
         <div className="module-card">
           <h3>2. Upload Modified Sprite (.png)</h3>
           <p className="muted-text">
-            Target: <strong>{selectedPreset.target}</strong> ({String(selectedPreset.tileWidth)}x
-            {String(selectedPreset.tileHeight)}px)
+            Target: <strong>{activeTarget}</strong> ({String(activeToArea.Width)}x
+            {String(activeToArea.Height)}px)
           </p>
           <label className="file-upload-btn">
             Upload Replacement PNG

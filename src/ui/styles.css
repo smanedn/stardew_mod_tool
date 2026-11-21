@@ -910,3 +910,31 @@ body {
   flex: 1;
   min-width: 12rem;
 }
+
+.spritesheet-tile-grid {
+  display: grid;
+  gap: 2px;
+  padding: 6px;
+  background: #1f2937;
+  border-radius: 8px;
+  border: 2px solid #7c3f18;
+  margin: 0.65rem 0;
+}
+
+.spritesheet-tile {
+  aspect-ratio: 1 / 1;
+  font-size: 0.62rem;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.08);
+  color: #e5e7eb;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.spritesheet-tile.active {
+  background: #f59e0b;
+  color: #111827;
+  font-weight: 700;
+  border-color: #ffffff;
+}

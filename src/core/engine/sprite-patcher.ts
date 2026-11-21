@@ -128,3 +128,56 @@ export function calculateEditImageAreas(
     },
   };
 }
+
+export interface SpritesheetTargetInfo {
+  readonly target: 'Maps/springobjects' | 'TileSheets/crops' | 'TileSheets/furniture';
+  readonly label: string;
+  readonly columns: number;
+  readonly previewRows: number;
+  readonly tileWidth: number;
+  readonly tileHeight: number;
+}
+
+export const SPRITESHEET_TARGETS: readonly SpritesheetTargetInfo[] = [
+  {
+    target: 'Maps/springobjects',
+    label: 'Maps/springobjects',
+    columns: 16,
+    previewRows: 6,
+    tileWidth: 16,
+    tileHeight: 16,
+  },
+  {
+    target: 'TileSheets/crops',
+    label: 'TileSheets/crops',
+    columns: 16,
+    previewRows: 6,
+    tileWidth: 16,
+    tileHeight: 16,
+  },
+  {
+    target: 'TileSheets/furniture',
+    label: 'TileSheets/furniture',
+    columns: 16,
+    previewRows: 6,
+    tileWidth: 16,
+    tileHeight: 16,
+  },
+];
+
+/**
+ * Computes the 16x16 ToArea rectangle for a clicked spritesheet tile (col, row).
+ */
+export function computeTileToArea(
+  col: number,
+  row: number,
+  tileWidth = 16,
+  tileHeight = 16,
+): AreaRect {
+  return {
+    X: Math.max(0, col) * tileWidth,
+    Y: Math.max(0, row) * tileHeight,
+    Width: tileWidth,
+    Height: tileHeight,
+  };
+}
