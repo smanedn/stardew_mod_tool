@@ -43,7 +43,7 @@ const TUTORIAL_STEPS: readonly TutorialStep[] = [
     icon: '🍓',
     title: 'Step 3: Add a Custom Stardew Item & Recipe',
     summary:
-      'In New Items: add "Golden Starberry" (250g, +100 Energy) with searchable vanilla ingredients.',
+      'In New Items: add "Golden Starberry" (250g, +100 Energy) with searchable ingredients.',
     actionLabel: 'Add Golden Starberry & Next →',
   },
   {
