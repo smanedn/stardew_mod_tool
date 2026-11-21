@@ -128,10 +128,7 @@ function checkModPairConflicts(
   other: ParsedInstalledMod,
 ): readonly ModConflictWarning[] {
   const warnings: ModConflictWarning[] = [];
-  if (
-    other.uniqueId.length > 0 &&
-    other.uniqueId.toLowerCase() === activeUniqueId.toLowerCase()
-  ) {
+  if (other.uniqueId.length > 0 && other.uniqueId.toLowerCase() === activeUniqueId.toLowerCase()) {
     warnings.push({
       kind: 'DUPLICATE_UNIQUE_ID',
       otherModName: other.name,
