@@ -42,21 +42,35 @@ export const LoadPatchSchema = z
   })
   .strict();
 
+export const TextOperationSchema = z
+  .object({
+    Operation: z.enum(['Append', 'Prepend', 'Remove']),
+    Target: z.array(z.string().min(1)).min(1),
+    Value: z.string(),
+    Delimiter: z.string().optional(),
+  })
+  .strict();
+
 export const EditDataPatchSchema = z
   .object({
     Action: z.literal('EditData'),
     LogName: z.string().trim().min(1).optional(),
     Target: GameTargetSchema,
+    TargetField: z.array(z.string().min(1)).min(1).optional(),
     Entries: z.record(z.string().min(1), z.unknown()).optional(),
     Fields: z
       .record(z.string().min(1), z.record(z.string().min(1), z.unknown()))
       .optional(),
+    TextOperations: z.array(TextOperationSchema).min(1).optional(),
     When: PatchConditionsSchema.optional(),
   })
   .strict()
   .refine(
-    (patch) => patch.Entries !== undefined || patch.Fields !== undefined,
-    'EditData patch must specify Entries or Fields.',
+    (patch) =>
+      patch.Entries !== undefined ||
+      patch.Fields !== undefined ||
+      patch.TextOperations !== undefined,
+    'EditData patch must specify Entries, Fields, or TextOperations.',
   );
 
 export const EditImagePatchSchema = z

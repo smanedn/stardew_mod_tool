@@ -31,12 +31,21 @@ export interface LoadPatch {
   readonly When?: PatchConditions;
 }
 
+export interface TextOperation {
+  readonly Operation: 'Append' | 'Prepend' | 'Remove';
+  readonly Target: readonly string[];
+  readonly Value: string;
+  readonly Delimiter?: string;
+}
+
 export interface EditDataPatch {
   readonly Action: 'EditData';
   readonly LogName?: string;
   readonly Target: string;
+  readonly TargetField?: readonly string[];
   readonly Entries?: Readonly<Record<string, unknown>>;
   readonly Fields?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
+  readonly TextOperations?: readonly TextOperation[];
   readonly When?: PatchConditions;
 }
 

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   type ModImportResult,
   importContentPatcherMod,
@@ -144,11 +144,12 @@ function loadRecentProjects(): readonly SdvProjectFile[] {
   }
 }
 
-function saveRecentProjects(projects: readonly SdvProjectFile[]): void {
+function saveRecentProjects(projects: readonly SdvProjectFile[]): boolean {
   try {
     localStorage.setItem(RECENT_STORAGE_KEY, JSON.stringify(projects.slice(0, 8)));
+    return true;
   } catch {
-    // Ignore storage quota errors in preview mode.
+    return false;
   }
 }
 
@@ -169,15 +170,34 @@ export function App(): React.JSX.Element {
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
+  const toastTimerRef = useRef<number | null>(null);
+  const saveTimerRef = useRef<number | null>(null);
 
   const showToast = useCallback(
     (msg: string, soundKind: 'pop' | 'success' = 'success'): void => {
+      if (toastTimerRef.current !== null) {
+        window.clearTimeout(toastTimerRef.current);
+      }
       setToastMessage(msg);
       playCozyChime(soundEnabled, soundKind);
-      setTimeout(() => { setToastMessage(null); }, 2800);
+      toastTimerRef.current = window.setTimeout(() => {
+        setToastMessage(null);
+        toastTimerRef.current = null;
+      }, 2800);
     },
     [soundEnabled],
   );
+
+  useEffect(() => {
+    return (): void => {
+      if (toastTimerRef.current !== null) {
+        window.clearTimeout(toastTimerRef.current);
+      }
+      if (saveTimerRef.current !== null) {
+        window.clearTimeout(saveTimerRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -190,6 +210,21 @@ export function App(): React.JSX.Element {
     }
   }, [theme, season]);
 
+  const scheduleSaveRecent = useCallback(
+    (projects: readonly SdvProjectFile[]): void => {
+      if (saveTimerRef.current !== null) {
+        window.clearTimeout(saveTimerRef.current);
+      }
+      saveTimerRef.current = window.setTimeout(() => {
+        saveTimerRef.current = null;
+        if (!saveRecentProjects(projects)) {
+          showToast('Browser storage quota full — export .sdvproj backup to keep changes.');
+        }
+      }, 300);
+    },
+    [showToast],
+  );
+
   const persistActiveProject = useCallback(
     (project: SdvProjectFile): void => {
       const updated = [
@@ -197,11 +232,11 @@ export function App(): React.JSX.Element {
         ...recentProjects.filter((item) => item.metadata.uniqueId !== project.metadata.uniqueId),
       ];
       setRecentProjects(updated);
-      saveRecentProjects(updated);
+      scheduleSaveRecent(updated);
       setActiveProject(project);
       setImportError(null);
     },
-    [recentProjects],
+    [recentProjects, scheduleSaveRecent],
   );
 
   const openAndRememberProject = (project: SdvProjectFile): void => {
@@ -255,8 +290,23 @@ export function App(): React.JSX.Element {
   }, [activeProject, history, persistActiveProject]);
 
   useEffect(() => {
+    const isEditableElement = (target: EventTarget | null): boolean => {
+      if (!(target instanceof HTMLElement)) {
+        return false;
+      }
+      return (
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement ||
+        target.isContentEditable
+      );
+    };
+
     const onKeyDown = (event: KeyboardEvent): void => {
       if (activeProject === null || (!event.ctrlKey && !event.metaKey)) {
+        return;
+      }
+      if (isEditableElement(event.target)) {
         return;
       }
       const key = event.key.toLowerCase();

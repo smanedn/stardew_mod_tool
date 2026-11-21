@@ -37,6 +37,7 @@ describe('v0.5.2 Custom Fish & Fishing Locations', () => {
 
     const content = compileProjectToContentJson(project);
     expect(content.Changes.map((c) => ('Target' in c ? c.Target : ''))).toEqual([
+      'Data/Objects',
       'Data/Fish',
       'Data/Locations',
     ]);

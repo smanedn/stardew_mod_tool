@@ -90,16 +90,51 @@ function buildAssetLookup(
   return new Map(assets.map((asset) => [asset.id, asset]));
 }
 
-function compileObjectPatch(edit: ObjectEditEntry): ContentPatch {
-  const buff = edit.buff;
+function buildObjectBuffs(buff: ObjectEditEntry['buff']): readonly unknown[] | undefined {
+  if (buff === undefined) {
+    return undefined;
+  }
   const hasBuff =
-    buff !== undefined &&
-    ((buff.speed ?? 0) !== 0 ||
-      (buff.luck ?? 0) !== 0 ||
-      (buff.farming ?? 0) > 0 ||
-      (buff.mining ?? 0) > 0);
+    (buff.speed ?? 0) !== 0 ||
+    (buff.luck ?? 0) !== 0 ||
+    (buff.farming ?? 0) > 0 ||
+    (buff.mining ?? 0) > 0;
+  if (!hasBuff) {
+    return undefined;
+  }
+  return [
+    {
+      Duration: buff.durationSeconds ?? 120,
+      CustomAttributes: {
+        ...(buff.speed !== undefined ? { Speed: buff.speed } : {}),
+        ...(buff.luck !== undefined ? { LuckLevel: buff.luck } : {}),
+        ...(buff.farming !== undefined ? { FarmingLevel: buff.farming } : {}),
+        ...(buff.mining !== undefined ? { MiningLevel: buff.mining } : {}),
+      },
+    },
+  ];
+}
 
-  return {
+function compileObjectPatches(
+  edit: ObjectEditEntry,
+  uniqueId: string,
+  assetsById: ReadonlyMap<string, LinkedAssetEntry>,
+): readonly ContentPatch[] {
+  const buffs = buildObjectBuffs(edit.buff);
+  const linkedAsset = edit.assetId !== undefined ? assetsById.get(edit.assetId) : undefined;
+  const textureTarget = linkedAsset !== undefined ? `Mods/${uniqueId}/${linkedAsset.id}` : null;
+  const patches: ContentPatch[] = [];
+
+  if (linkedAsset !== undefined && textureTarget !== null) {
+    patches.push({
+      Action: 'Load',
+      LogName: `Load Object Sprite: ${edit.displayName}`,
+      Target: textureTarget,
+      FromFile: linkedAsset.relativePath,
+    });
+  }
+
+  patches.push({
     Action: 'EditData',
     LogName: `Add Object: ${edit.displayName}`,
     Target: 'Data/Objects',
@@ -111,24 +146,14 @@ function compileObjectPatch(edit: ObjectEditEntry): ContentPatch {
         Price: edit.price,
         Edibility: edit.edibility,
         Category: edit.category,
-        ...(hasBuff
-          ? {
-              Buffs: [
-                {
-                  Duration: buff.durationSeconds ?? 120,
-                  CustomAttributes: {
-                    ...(buff.speed !== undefined ? { Speed: buff.speed } : {}),
-                    ...(buff.luck !== undefined ? { LuckLevel: buff.luck } : {}),
-                    ...(buff.farming !== undefined ? { FarmingLevel: buff.farming } : {}),
-                    ...(buff.mining !== undefined ? { MiningLevel: buff.mining } : {}),
-                  },
-                },
-              ],
-            }
-          : {}),
+        ...(textureTarget !== null ? { Texture: textureTarget, SpriteIndex: 0 } : {}),
+        ...(buffs !== undefined ? { Buffs: buffs } : {}),
       },
     },
-  };
+  });
+
+  const recipe = compileObjectRecipePatch(edit);
+  return recipe !== null ? [...patches, recipe] : patches;
 }
 
 function compileObjectRecipePatch(edit: ObjectEditEntry): ContentPatch | null {
@@ -213,11 +238,14 @@ function compileGiftTastePatch(edit: GiftTasteEditEntry): ContentPatch {
     Action: 'EditData',
     LogName: `Gift Taste: ${edit.npcName} (${edit.taste})`,
     Target: 'Data/NPCGiftTastes',
-    Fields: {
-      [edit.npcName]: {
-        [GIFT_FIELD_INDEX[edit.taste]]: edit.itemId,
+    TextOperations: [
+      {
+        Operation: 'Append',
+        Target: ['Entries', edit.npcName, GIFT_FIELD_INDEX[edit.taste]],
+        Value: edit.itemId,
+        Delimiter: ' ',
       },
-    },
+    ],
   };
 }
 
@@ -226,15 +254,12 @@ function compileShopPatch(edit: ShopEditEntry): ContentPatch {
     Action: 'EditData',
     LogName: `Add to Shop: ${edit.shopId}`,
     Target: 'Data/Shops',
-    Fields: {
-      [edit.shopId]: {
-        Items: [
-          {
-            Id: edit.id,
-            ItemId: `(O)${edit.itemId}`,
-            Price: edit.price,
-          },
-        ],
+    TargetField: [edit.shopId, 'Items'],
+    Entries: {
+      [edit.id]: {
+        Id: edit.id,
+        ItemId: `(O)${edit.itemId}`,
+        Price: edit.price,
       },
     },
   };
@@ -353,6 +378,24 @@ const FISH_LOCATION_MAP: Readonly<Record<FishEditEntry['waterLocation'], string>
   Lake: 'Mountain',
 };
 
+function buildFishObjectPatch(edit: FishEditEntry): ContentPatch {
+  return {
+    Action: 'EditData',
+    LogName: `Add Fish Object: ${edit.displayName}`,
+    Target: 'Data/Objects',
+    Entries: {
+      [edit.fishId]: {
+        Name: edit.fishId,
+        DisplayName: edit.displayName,
+        Description: `A custom ${edit.waterLocation.toLowerCase()} fish.`,
+        Price: edit.price,
+        Edibility: -300,
+        Category: -4,
+      },
+    },
+  };
+}
+
 function compileFishPatches(edit: FishEditEntry): readonly ContentPatch[] {
   const seasonsStr = edit.seasons.map((s) => s.toLowerCase()).join(' ');
   const fishValue = [
@@ -373,6 +416,7 @@ function compileFishPatches(edit: FishEditEntry): readonly ContentPatch[] {
 
   const locationKey = FISH_LOCATION_MAP[edit.waterLocation];
   return [
+    buildFishObjectPatch(edit),
     {
       Action: 'EditData',
       LogName: `Add Fish: ${edit.displayName}`,
@@ -394,13 +438,12 @@ function compileFishPatches(edit: FishEditEntry): readonly ContentPatch[] {
 
 function compileSingleEdit(
   edit: SdvProjectFile['edits'][number],
+  uniqueId: string,
   assetsById: ReadonlyMap<string, LinkedAssetEntry>,
 ): readonly ContentPatch[] {
   switch (edit.kind) {
-    case 'object': {
-      const recipe = compileObjectRecipePatch(edit);
-      return recipe !== null ? [compileObjectPatch(edit), recipe] : [compileObjectPatch(edit)];
-    }
+    case 'object':
+      return compileObjectPatches(edit, uniqueId, assetsById);
     case 'crop':
       return [compileCropPatch(edit)];
     case 'retexture':
@@ -434,7 +477,7 @@ export function compileProjectToContentJson(project: SdvProjectFile): ContentJso
   const changes: ContentPatch[] = [];
 
   for (const edit of project.edits) {
-    changes.push(...compileSingleEdit(edit, assetsById));
+    changes.push(...compileSingleEdit(edit, project.metadata.uniqueId, assetsById));
   }
 
   const hasConfig = project.configOptions !== undefined && project.configOptions.length > 0;

@@ -6,6 +6,7 @@ import {
 } from '../../core/engine/browser-compiler.js';
 import { createBrowserModZipBytes } from '../../core/engine/browser-zip.js';
 import { generateNexusBbCode } from '../../core/engine/nexus-bbcode.js';
+import { lintProjectInMemory } from '../../core/validators/project-linter.js';
 import {
   detectModsFolderViaTauri,
   detectSvmmViaTauri,
@@ -187,6 +188,7 @@ export function InGamePreview(props: InGamePreviewProps): React.JSX.Element {
   };
 
   const nexusBbCode = props.project !== undefined ? generateNexusBbCode(props.project) : '';
+  const lintReport = props.project !== undefined ? lintProjectInMemory(props.project) : null;
 
   const handleCopyBbCode = (): void => {
     if (nexusBbCode.length === 0) {
@@ -238,6 +240,22 @@ export function InGamePreview(props: InGamePreviewProps): React.JSX.Element {
             </div>
           </div>
           {exportStatus !== null && <p className="muted-text">{exportStatus}</p>}
+          {lintReport !== null && (
+            <div className="lint-summary">
+              <strong>
+                Pre-Export Linter:{' '}
+                {lintReport.valid
+                  ? `Ready (${String(lintReport.warnings.length)} warning(s))`
+                  : `${String(lintReport.errors.length)} error(s), ` +
+                    `${String(lintReport.warnings.length)} warning(s)`}
+              </strong>
+              {[...lintReport.errors, ...lintReport.warnings].map((issue, idx) => (
+                <p key={idx} className={issue.severity === 'error' ? 'field-error' : 'muted-text'}>
+                  [{issue.code}] {issue.message}
+                </p>
+              ))}
+            </div>
+          )}
           {isDesktop && (
             <div className="inline-row">
               <input
