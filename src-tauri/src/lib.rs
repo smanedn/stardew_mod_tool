@@ -12,6 +12,14 @@ pub struct SvmmDiscoveryResult {
     pub modpacks: Vec<String>,
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InstalledModSnapshotPayload {
+    pub folder_name: String,
+    pub manifest_json: String,
+    pub content_json: Option<String>,
+}
+
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ExportFilePayload {
@@ -281,6 +289,76 @@ fn launch_smapi(app: tauri::AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+fn list_svmm_mod_folders(svmm_data_dir: String, modpack_name: String) -> Result<Vec<String>, String> {
+    if !is_safe_relative_path(&modpack_name) {
+        return Err("Invalid SVMM modpack name.".to_string());
+    }
+    let svmm_root = validate_existing_dir(&svmm_data_dir, &["SVMM_Data"])?;
+    let pack_dir = svmm_root.join("modpacks").join(&modpack_name);
+    if !pack_dir.is_dir() {
+        return Ok(Vec::new());
+    }
+    let mut folders = Vec::new();
+    if let Ok(entries) = fs::read_dir(&pack_dir) {
+        for entry in entries.flatten() {
+            let p = entry.path();
+            if p.is_dir() && p.join("manifest.json").is_file() {
+                folders.push(entry.file_name().to_string_lossy().to_string());
+            }
+        }
+    }
+    folders.sort();
+    Ok(folders)
+}
+
+#[tauri::command]
+fn read_svmm_mod_files(
+    svmm_data_dir: String,
+    modpack_name: String,
+    mod_folder_name: String,
+) -> Result<InstalledModSnapshotPayload, String> {
+    if !is_safe_relative_path(&modpack_name) || !is_safe_relative_path(&mod_folder_name) {
+        return Err("Invalid SVMM modpack or mod folder name.".to_string());
+    }
+    let svmm_root = validate_existing_dir(&svmm_data_dir, &["SVMM_Data"])?;
+    let mod_dir = svmm_root
+        .join("modpacks")
+        .join(&modpack_name)
+        .join(&mod_folder_name);
+    let manifest_json = fs::read_to_string(mod_dir.join("manifest.json"))
+        .map_err(|e| format!("Failed to read manifest.json: {e}"))?;
+    let content_json = fs::read_to_string(mod_dir.join("content.json")).ok();
+    Ok(InstalledModSnapshotPayload {
+        folder_name: mod_folder_name,
+        manifest_json,
+        content_json,
+    })
+}
+
+#[tauri::command]
+fn scan_mods_folder_manifests(mods_dir: String) -> Result<Vec<InstalledModSnapshotPayload>, String> {
+    let mods_root = validate_existing_dir(&mods_dir, &["Mods"])?;
+    let mut snapshots = Vec::new();
+    let entries = fs::read_dir(&mods_root).map_err(|e| e.to_string())?;
+    for entry in entries.flatten() {
+        let dir = entry.path();
+        if !dir.is_dir() {
+            continue;
+        }
+        let manifest_path = dir.join("manifest.json");
+        if let Ok(manifest_json) = fs::read_to_string(&manifest_path) {
+            let content_json = fs::read_to_string(dir.join("content.json")).ok();
+            snapshots.push(InstalledModSnapshotPayload {
+                folder_name: entry.file_name().to_string_lossy().to_string(),
+                manifest_json,
+                content_json,
+            });
+        }
+    }
+    Ok(snapshots)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -289,6 +367,9 @@ pub fn run() {
             export_mod_files_to_mods,
             detect_svmm_modpacks,
             export_mod_to_svmm_modpack,
+            list_svmm_mod_folders,
+            read_svmm_mod_files,
+            scan_mods_folder_manifests,
             launch_smapi
         ])
         .run(tauri::generate_context!())

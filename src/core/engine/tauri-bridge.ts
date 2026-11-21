@@ -2,6 +2,11 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import type { SdvProjectFile } from '../../data/models/index.js';
 import {
+  type InstalledModSnapshot,
+  type ModConflictWarning,
+  scanModConflicts,
+} from '../validators/conflict-scanner.js';
+import {
   compileProjectToContentJson,
   compileProjectToManifest,
   serializeCleanJson,
@@ -9,6 +14,7 @@ import {
 import { formatBrowserZipRootName } from './browser-zip.js';
 import { compileDefaultConfigJson } from './config-schema-builder.js';
 import { buildLocaleFileMap } from './i18n-generator.js';
+import { type ModImportResult, importContentPatcherMod } from './mod-importer.js';
 import { type SmapiLogEntry, parseSmapiLogLine } from './smapi-log-parser.js';
 
 export interface TauriExportFilePayload {
@@ -131,6 +137,54 @@ export async function exportModToModsViaTauri(
     modFolderName: folderName,
     files,
   });
+}
+
+/**
+ * Lists Content Patcher mod folders inside an SVMM modpack via Tauri.
+ */
+export async function listSvmmModFoldersViaTauri(
+  svmmDataDir: string,
+  modpackName: string,
+): Promise<readonly string[]> {
+  if (!isTauriDesktopRuntime()) {
+    return [];
+  }
+  return invoke<readonly string[]>('list_svmm_mod_folders', { svmmDataDir, modpackName });
+}
+
+/**
+ * Opens an existing Content Patcher mod from an SVMM modpack into an editable project.
+ */
+export async function openSvmmModViaTauri(
+  svmmDataDir: string,
+  modpackName: string,
+  modFolderName: string,
+): Promise<ModImportResult> {
+  const payload = await invoke<InstalledModSnapshot>('read_svmm_mod_files', {
+    svmmDataDir,
+    modpackName,
+    modFolderName,
+  });
+  return importContentPatcherMod({
+    manifestJson: payload.manifestJson,
+    contentJson: payload.contentJson,
+  });
+}
+
+/**
+ * Scans Mods/ via Tauri for UniqueID, Data/Objects key, and EditImage ToArea conflicts.
+ */
+export async function scanModsConflictsViaTauri(
+  modsDir: string,
+  project: SdvProjectFile,
+): Promise<readonly ModConflictWarning[]> {
+  if (!isTauriDesktopRuntime()) {
+    return [];
+  }
+  const snapshots = await invoke<readonly InstalledModSnapshot[]>('scan_mods_folder_manifests', {
+    modsDir,
+  });
+  return scanModConflicts(project, snapshots);
 }
 
 /**

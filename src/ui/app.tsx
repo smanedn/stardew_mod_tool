@@ -594,6 +594,7 @@ export function App(): React.JSX.Element {
           onImportManifest={handleImportManifest}
           onImportModFiles={handleImportModFiles}
           onImportZip={handleImportZip}
+          onOpenSvmmMod={applyImportedModResult}
           onImportProjectBackup={handleImportProjectBackup}
           importError={importError}
         />

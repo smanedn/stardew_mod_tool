@@ -4,6 +4,12 @@ import {
   compileProjectToManifest,
 } from '../../core/engine/browser-compiler.js';
 import { type SmapiLogEntry, parseSmapiLogLine } from '../../core/engine/smapi-log-parser.js';
+import {
+  detectModsFolderViaTauri,
+  isTauriDesktopRuntime,
+  scanModsConflictsViaTauri,
+} from '../../core/engine/tauri-bridge.js';
+import type { ModConflictWarning } from '../../core/validators/conflict-scanner.js';
 import type { SdvProjectFile } from '../../data/models/index.js';
 
 export interface QuickLaunchPanelProps {
@@ -52,17 +58,42 @@ function getLogLineClass(entry: SmapiLogEntry): string {
 export function QuickLaunchPanel(props: QuickLaunchPanelProps): React.JSX.Element {
   const [logs, setLogs] = useState<readonly SmapiLogEntry[]>([]);
   const [statusText, setStatusText] = useState<string>('Idle');
+  const [conflicts, setConflicts] = useState<readonly ModConflictWarning[]>([]);
+  const [scanSummary, setScanSummary] = useState<string | null>(null);
   const { uniqueId, name } = props.project.metadata;
+  const isDesktop = isTauriDesktopRuntime();
 
   const appendEntry = (entry: SmapiLogEntry): void => {
     setLogs((prev) => [...prev, entry]);
   };
 
+  const runConflictScan = async (): Promise<void> => {
+    if (!isDesktop) {
+      setScanSummary('Conflict scan requires Tauri desktop runtime with Mods/ access.');
+      return;
+    }
+    const modsDir = await detectModsFolderViaTauri();
+    if (modsDir === null) {
+      setScanSummary('Could not auto-detect Stardew Valley/Mods folder.');
+      return;
+    }
+    const found = await scanModsConflictsViaTauri(modsDir, props.project);
+    setConflicts(found);
+    setScanSummary(
+      found.length === 0
+        ? `Scanned ${modsDir}: No conflicts detected.`
+        : `Scanned ${modsDir}: ${String(found.length)} conflict warning(s) found.`,
+    );
+  };
+
   const handleTestInGame = (): void => {
     setLogs([]);
     if (props.onLaunchSmapi !== undefined) {
-      setStatusText('Running SMAPI...');
-      void Promise.resolve(props.onLaunchSmapi(appendEntry)).then(() => {
+      setStatusText('Scanning & Launching SMAPI...');
+      void runConflictScan().then(() => {
+        setStatusText('Running SMAPI...');
+        return Promise.resolve(props.onLaunchSmapi?.(appendEntry));
+      }).then(() => {
         setStatusText('SMAPI exited');
       });
       return;
@@ -86,6 +117,13 @@ export function QuickLaunchPanel(props: QuickLaunchPanelProps): React.JSX.Elemen
           </span>
         </div>
         <div className="inline-row">
+          <button
+            type="button"
+            className="secondary-btn"
+            onClick={() => { void runConflictScan(); }}
+          >
+            Scan Mods/ Conflicts
+          </button>
           <button type="button" className="launch-btn" onClick={handleTestInGame}>
             Test in Game
           </button>
@@ -98,6 +136,17 @@ export function QuickLaunchPanel(props: QuickLaunchPanelProps): React.JSX.Elemen
           </button>
         </div>
       </div>
+
+      {scanSummary !== null && <p className="muted-text">{scanSummary}</p>}
+      {conflicts.length > 0 && (
+        <div className="lint-summary">
+          {conflicts.map((c, idx) => (
+            <p key={idx} className="field-error">
+              [{c.kind}] {c.detail}
+            </p>
+          ))}
+        </div>
+      )}
 
       <div className="smapi-console">
         {logs.length === 0 ? (

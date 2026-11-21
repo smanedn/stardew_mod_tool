@@ -1,8 +1,15 @@
 import { useState } from 'react';
+import type { ModImportResult } from '../../core/engine/mod-importer.js';
 import {
   PROJECT_TEMPLATES,
   type ProjectTemplateId,
 } from '../../core/engine/project-templates.js';
+import {
+  detectSvmmViaTauri,
+  isTauriDesktopRuntime,
+  listSvmmModFoldersViaTauri,
+  openSvmmModViaTauri,
+} from '../../core/engine/tauri-bridge.js';
 import type { SdvProjectFile } from '../../data/models/index.js';
 
 export interface ProjectDashboardProps {
@@ -14,6 +21,7 @@ export interface ProjectDashboardProps {
   readonly onImportManifest: (manifestJson: string) => void;
   readonly onImportModFiles: (manifestJson: string, contentJson: string) => void;
   readonly onImportZip: (zipBytes: Uint8Array) => void;
+  readonly onOpenSvmmMod?: (result: ModImportResult) => void;
   readonly onImportProjectBackup: (projectJson: string) => void;
   readonly importError: string | null;
 }
@@ -32,10 +40,89 @@ const FRIENDLY_TITLES: Readonly<Record<ProjectTemplateId, string>> = {
   dialogue: 'Change Villager Chat',
 };
 
+function SvmmOpenRow(props: {
+  readonly onOpenSvmmMod: (result: ModImportResult) => void;
+}): React.JSX.Element {
+  const [svmmDir, setSvmmDir] = useState('SVMM_Data');
+  const [modpacks, setModpacks] = useState<readonly string[]>([]);
+  const [selectedPack, setSelectedPack] = useState('');
+  const [modFolders, setModFolders] = useState<readonly string[]>([]);
+  const [selectedMod, setSelectedMod] = useState('');
+
+  const handleScanSvmm = (): void => {
+    void detectSvmmViaTauri(svmmDir).then((info) => {
+      if (info === null) {
+        return;
+      }
+      setSvmmDir(info.svmmDataDir);
+      setModpacks(info.modpacks);
+      const firstPack = info.modpacks[0] ?? '';
+      setSelectedPack(firstPack);
+      if (firstPack.length > 0) {
+        void listSvmmModFoldersViaTauri(info.svmmDataDir, firstPack).then((mods) => {
+          setModFolders(mods);
+          setSelectedMod(mods[0] ?? '');
+        });
+      }
+    });
+  };
+
+  return (
+    <div className="inline-row">
+      <button type="button" className="secondary-btn" onClick={handleScanSvmm}>
+        Scan SVMM Modpacks
+      </button>
+      {modpacks.length > 0 && (
+        <select
+          value={selectedPack}
+          onChange={(e) => {
+            const pack = e.target.value;
+            setSelectedPack(pack);
+            void listSvmmModFoldersViaTauri(svmmDir, pack).then((mods) => {
+              setModFolders(mods);
+              setSelectedMod(mods[0] ?? '');
+            });
+          }}
+        >
+          {modpacks.map((pack) => (
+            <option key={pack} value={pack}>
+              {pack}
+            </option>
+          ))}
+        </select>
+      )}
+      {modFolders.length > 0 && (
+        <>
+          <select value={selectedMod} onChange={(e) => { setSelectedMod(e.target.value); }}>
+            {modFolders.map((mod) => (
+              <option key={mod} value={mod}>
+                {mod}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            className="launch-btn"
+            disabled={selectedMod.length === 0}
+            onClick={() => {
+              void openSvmmModViaTauri(svmmDir, selectedPack, selectedMod).then((res) => {
+                props.onOpenSvmmMod(res);
+              });
+            }}
+          >
+            Open from SVMM
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
 function ImportModSection(props: {
   readonly onImport: (json: string) => void;
   readonly onImportModFiles: (manifestJson: string, contentJson: string) => void;
   readonly onImportZip: (zipBytes: Uint8Array) => void;
+  readonly onOpenSvmmMod?: (result: ModImportResult) => void;
   readonly onImportBackup: (json: string) => void;
   readonly error: string | null;
 }): React.JSX.Element {
@@ -154,6 +241,9 @@ function ImportModSection(props: {
             value={contentText}
             onChange={(e) => { setContentText(e.target.value); }}
           />
+          {isTauriDesktopRuntime() && props.onOpenSvmmMod !== undefined && (
+            <SvmmOpenRow onOpenSvmmMod={props.onOpenSvmmMod} />
+          )}
           {props.error !== null && <p className="field-error">{props.error}</p>}
         </>
       )}
@@ -281,6 +371,7 @@ export function ProjectDashboard(props: ProjectDashboardProps): React.JSX.Elemen
         onImport={props.onImportManifest}
         onImportModFiles={props.onImportModFiles}
         onImportZip={props.onImportZip}
+        onOpenSvmmMod={props.onOpenSvmmMod}
         onImportBackup={props.onImportProjectBackup}
         error={props.importError}
       />
