@@ -111,6 +111,37 @@ export interface MailEditEntry {
 
 export type EventLocationId = 'Town' | 'Farm' | 'Saloon' | 'Beach';
 
+export interface EventTilePos {
+  readonly x: number;
+  readonly y: number;
+}
+
+export type EventTimelineStep =
+  | {
+      readonly id: string;
+      readonly kind: 'walk';
+      readonly actor: 'farmer' | 'npc';
+      readonly dx: number;
+      readonly dy: number;
+      readonly facing: 0 | 1 | 2 | 3;
+    }
+  | {
+      readonly id: string;
+      readonly kind: 'emote';
+      readonly actor: 'farmer' | 'npc';
+      readonly emoteId: number;
+    }
+  | {
+      readonly id: string;
+      readonly kind: 'pause';
+      readonly durationMs: number;
+    }
+  | {
+      readonly id: string;
+      readonly kind: 'speak';
+      readonly text: string;
+    };
+
 export interface EventEditEntry {
   readonly kind: 'event';
   readonly id: string;
@@ -119,6 +150,9 @@ export interface EventEditEntry {
   readonly npcName: string;
   readonly dialogueText: string;
   readonly minHearts: number;
+  readonly farmerPos?: EventTilePos;
+  readonly npcPos?: EventTilePos;
+  readonly steps?: readonly EventTimelineStep[];
 }
 
 export type AnimalHouseType = 'Coop' | 'Barn';

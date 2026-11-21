@@ -129,6 +129,48 @@ const MailEditSchema = z
   })
   .strict();
 
+const EventTilePosSchema = z
+  .object({
+    x: z.number().int().min(0).max(200),
+    y: z.number().int().min(0).max(200),
+  })
+  .strict();
+
+const EventTimelineStepSchema = z.discriminatedUnion('kind', [
+  z
+    .object({
+      id: z.string().min(1),
+      kind: z.literal('walk'),
+      actor: z.enum(['farmer', 'npc']),
+      dx: z.number().int().min(-20).max(20),
+      dy: z.number().int().min(-20).max(20),
+      facing: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)]),
+    })
+    .strict(),
+  z
+    .object({
+      id: z.string().min(1),
+      kind: z.literal('emote'),
+      actor: z.enum(['farmer', 'npc']),
+      emoteId: z.number().int().min(4).max(64),
+    })
+    .strict(),
+  z
+    .object({
+      id: z.string().min(1),
+      kind: z.literal('pause'),
+      durationMs: z.number().int().min(100).max(10000),
+    })
+    .strict(),
+  z
+    .object({
+      id: z.string().min(1),
+      kind: z.literal('speak'),
+      text: z.string().min(1),
+    })
+    .strict(),
+]);
+
 const EventEditSchema = z
   .object({
     kind: z.literal('event'),
@@ -138,6 +180,9 @@ const EventEditSchema = z
     npcName: z.string().min(1),
     dialogueText: z.string().min(1),
     minHearts: z.number().int().min(0).max(14),
+    farmerPos: EventTilePosSchema.optional(),
+    npcPos: EventTilePosSchema.optional(),
+    steps: z.array(EventTimelineStepSchema).optional(),
   })
   .strict();
 

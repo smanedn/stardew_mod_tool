@@ -309,16 +309,52 @@ function compileMailPatch(edit: MailEditEntry): ContentPatch {
   };
 }
 
+const EVENT_CAMERA_ORIGIN: Readonly<
+  Record<EventEditEntry['location'], { readonly x: number; readonly y: number }>
+> = {
+  Town: { x: 64, y: 15 },
+  Farm: { x: 64, y: 15 },
+  Saloon: { x: 14, y: 18 },
+  Beach: { x: 20, y: 10 },
+};
+
+function compileEventStep(
+  step: NonNullable<EventEditEntry['steps']>[number],
+  npcName: string,
+): string {
+  switch (step.kind) {
+    case 'walk': {
+      const actor = step.actor === 'farmer' ? 'farmer' : npcName;
+      return `move ${actor} ${String(step.dx)} ${String(step.dy)} ${String(step.facing)}`;
+    }
+    case 'emote': {
+      const actor = step.actor === 'farmer' ? 'farmer' : npcName;
+      return `emote ${actor} ${String(step.emoteId)}`;
+    }
+    case 'pause':
+      return `pause ${String(step.durationMs)}`;
+    case 'speak':
+      return `speak ${npcName} "${step.text.replace(/"/g, "'")}"`;
+  }
+}
+
 function compileEventPatch(edit: EventEditEntry): ContentPatch {
-  const cleanText = edit.dialogueText.replace(/"/g, "'");
+  const origin = EVENT_CAMERA_ORIGIN[edit.location];
+  const farmerPos = edit.farmerPos ?? { x: origin.x, y: origin.y + 3 };
+  const npcPos = edit.npcPos ?? { x: origin.x, y: origin.y + 1 };
   const heartsPoints = edit.minHearts * 250;
   const eventKey = `${edit.eventId}/f ${edit.npcName} ${String(heartsPoints)}`;
+  const stepCmds =
+    edit.steps !== undefined && edit.steps.length > 0
+      ? edit.steps.map((s) => compileEventStep(s, edit.npcName))
+      : ['pause 400', `speak ${edit.npcName} "${edit.dialogueText.replace(/"/g, "'")}"`];
+
   const script = [
     'continue',
-    '64 15',
-    `farmer 64 18 0 ${edit.npcName} 64 16 2`,
-    'pause 400',
-    `speak ${edit.npcName} "${cleanText}"`,
+    `${String(origin.x)} ${String(origin.y)}`,
+    `farmer ${String(farmerPos.x)} ${String(farmerPos.y)} 0 ` +
+      `${edit.npcName} ${String(npcPos.x)} ${String(npcPos.y)} 2`,
+    ...stepCmds,
     'end',
   ].join('/');
 

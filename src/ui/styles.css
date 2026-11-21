@@ -809,3 +809,104 @@ body {
   z-index: 1000;
   animation: tabFadeIn 0.2s ease;
 }
+
+.cutscene-stage-grid {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 2px;
+  padding: 6px;
+  border-radius: 8px;
+  border: 3px solid #7c3f18;
+  margin: 0.75rem 0;
+}
+
+.stage-town {
+  background: linear-gradient(180deg, #86efac 0%, #d6d3d1 40%, #a8a29e 100%);
+}
+
+.stage-farm {
+  background: linear-gradient(180deg, #4ade80 0%, #ca8a04 60%, #a16207 100%);
+}
+
+.stage-saloon {
+  background: linear-gradient(180deg, #78350f 0%, #92400e 100%);
+}
+
+.stage-beach {
+  background: linear-gradient(180deg, #fde68a 0%, #fcd34d 65%, #38bdf8 100%);
+}
+
+.cutscene-tile {
+  aspect-ratio: 1 / 1;
+  border: 1px dashed rgba(0, 0, 0, 0.16);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  cursor: pointer;
+}
+
+.cutscene-tile:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.cutscene-actor-chip {
+  width: 90%;
+  height: 90%;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.05rem;
+  cursor: grab;
+  position: relative;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+.cutscene-actor-chip.farmer {
+  background: #2563eb;
+}
+
+.cutscene-actor-chip.npc {
+  background: #fff7e6;
+  border: 2px solid #7c3f18;
+}
+
+.cutscene-mini-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+  border-radius: 4px;
+}
+
+.cutscene-emote-bubble {
+  position: absolute;
+  top: -12px;
+  right: -6px;
+  background: #ffffff;
+  color: #111827;
+  border: 1px solid #7c3f18;
+  border-radius: 999px;
+  padding: 0 4px;
+  font-size: 0.72rem;
+  line-height: 1.2;
+}
+
+.timeline-step-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+  margin-top: 0.45rem;
+}
+
+.timeline-step-row input[type='number'] {
+  width: 4.5rem;
+}
+
+.timeline-step-row input[type='text'] {
+  flex: 1;
+  min-width: 12rem;
+}
