@@ -23,10 +23,15 @@ const CATEGORY_LABELS: Readonly<Record<number, string>> = {
 
 const MOOD_BY_TOKEN: ReadonlyArray<readonly [string, PortraitMood]> = [
   ['$h', 'Happy'],
+  ['$1', 'Happy'],
   ['$s', 'Sad'],
+  ['$2', 'Sad'],
   ['$a', 'Angry'],
+  ['$3', 'Angry'],
   ['$l', 'Love'],
+  ['$4', 'Love'],
   ['$u', 'Surprised'],
+  ['$5', 'Surprised'],
 ];
 
 /**
@@ -69,7 +74,9 @@ export function parseDialoguePreview(
     .replace(/@/g, farmerName)
     .replace(/%farm/g, farmName)
     .replace(/%pet/g, 'Miso')
-    .replace(/\$[hsalue]/g, '');
+    .replace(/#\$e#/g, '')
+    .replace(/#\$b#/g, '$b')
+    .replace(/\$[hsaluekcn0-9]/g, '');
 
   const pages = substituted
     .split('$b')
