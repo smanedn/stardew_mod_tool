@@ -202,12 +202,17 @@ export function App(): React.JSX.Element {
       setActiveTab('crops');
     } else if (summary.dialoguesCount > 0) {
       setActiveTab('dialogue');
+    } else if (summary.furnitureCount > 0) {
+      setActiveTab('furniture');
+    } else if (summary.fishCount > 0) {
+      setActiveTab('fish');
     } else {
       setActiveTab('manifest');
     }
     showToast(
       `Imported "${project.metadata.name}": ${String(summary.itemsCount)} items, ` +
-        `${String(summary.cropsCount)} crops, ${String(summary.dialoguesCount)} dialogues`,
+        `${String(summary.cropsCount)} crops, ${String(summary.dialoguesCount)} dialogues, ` +
+        `${String(summary.furnitureCount)} furniture, ${String(summary.fishCount)} fish`,
     );
   };
 
@@ -467,7 +472,7 @@ export function App(): React.JSX.Element {
           <img src="/logo.png" alt="SVMC Logo" className="hero-logo" />
           <div>
             <h1>Stardew Valley Mod Creator - by Smane</h1>
-            <p className="app-subtitle">Cozy Content Patcher Studio • v0.8.0</p>
+            <p className="app-subtitle">Cozy Content Patcher Studio • v0.9.0</p>
           </div>
         </div>
         <div className="inline-row">
@@ -716,6 +721,7 @@ export function App(): React.JSX.Element {
                   uniqueId={activeProject.metadata.uniqueId}
                   crops={cropEdits}
                   objects={objectEdits}
+                  assets={activeProject.assets}
                   onAddCrop={(entry) => { updateProjectEdits([...activeProject.edits, entry]); }}
                   onUpdateCrop={(entry) => {
                     updateProjectEdits(
@@ -861,6 +867,7 @@ export function App(): React.JSX.Element {
                 <FishEditor
                   uniqueId={activeProject.metadata.uniqueId}
                   fishList={fishEdits}
+                  assets={activeProject.assets}
                   onAddFish={(entry) => { updateProjectEdits([...activeProject.edits, entry]); }}
                   onUpdateFish={(entry) => {
                     updateProjectEdits(

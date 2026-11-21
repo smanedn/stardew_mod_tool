@@ -163,6 +163,7 @@ function ImportModSection(props: {
 
 export function ProjectDashboard(props: ProjectDashboardProps): React.JSX.Element {
   const [searchQuery, setSearchQuery] = useState('');
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const filteredProjects = props.recentProjects.filter((proj) => {
     const q = searchQuery.trim().toLowerCase();
     return (
@@ -240,13 +241,35 @@ export function ProjectDashboard(props: ProjectDashboardProps): React.JSX.Elemen
                   >
                     Edit Mod
                   </button>
-                  <button
-                    type="button"
-                    className="danger-btn"
-                    onClick={() => { props.onDeleteRecent(proj.metadata.uniqueId); }}
-                  >
-                    Delete
-                  </button>
+                  {confirmDeleteId === proj.metadata.uniqueId ? (
+                    <>
+                      <button
+                        type="button"
+                        className="danger-btn"
+                        onClick={() => {
+                          props.onDeleteRecent(proj.metadata.uniqueId);
+                          setConfirmDeleteId(null);
+                        }}
+                      >
+                        Confirm Delete
+                      </button>
+                      <button
+                        type="button"
+                        className="secondary-btn"
+                        onClick={() => { setConfirmDeleteId(null); }}
+                      >
+                        Cancel
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      className="danger-btn"
+                      onClick={() => { setConfirmDeleteId(proj.metadata.uniqueId); }}
+                    >
+                      Delete
+                    </button>
+                  )}
                 </div>
               </li>
             ))}

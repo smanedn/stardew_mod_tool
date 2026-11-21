@@ -3,11 +3,13 @@ import type {
   FishEditEntry,
   FishLocationId,
   FishWeatherId,
+  LinkedAssetEntry,
 } from '../../data/models/index.js';
 
 export interface FishEditorProps {
   readonly uniqueId: string;
   readonly fishList: readonly FishEditEntry[];
+  readonly assets?: readonly LinkedAssetEntry[];
   readonly onAddFish: (entry: FishEditEntry) => void;
   readonly onUpdateFish: (entry: FishEditEntry) => void;
   readonly onRemoveFish: (id: string) => void;
@@ -204,6 +206,28 @@ export function FishEditor(props: FishEditorProps): React.JSX.Element {
                     }}
                   />
                 </label>
+                {(props.assets ?? []).length > 0 && (
+                  <label className="form-field">
+                    <span>Sprite Asset</span>
+                    <select
+                      value={entry.assetId ?? ''}
+                      onChange={(e) => {
+                        const nextAsset = e.target.value;
+                        props.onUpdateFish({
+                          ...entry,
+                          assetId: nextAsset.length > 0 ? nextAsset : undefined,
+                        });
+                      }}
+                    >
+                      <option value="">None (Default)</option>
+                      {(props.assets ?? []).map((asset) => (
+                        <option key={asset.id} value={asset.id}>
+                          {asset.relativePath}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
               </div>
               <div className="form-field">
                 <span>Seasons</span>

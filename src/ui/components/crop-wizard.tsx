@@ -1,9 +1,14 @@
-import type { CropEditEntry, ObjectEditEntry } from '../../data/models/index.js';
+import type {
+  CropEditEntry,
+  LinkedAssetEntry,
+  ObjectEditEntry,
+} from '../../data/models/index.js';
 
 export interface CropWizardProps {
   readonly uniqueId: string;
   readonly crops: readonly CropEditEntry[];
   readonly objects: readonly ObjectEditEntry[];
+  readonly assets?: readonly LinkedAssetEntry[];
   readonly onAddCrop: (entry: CropEditEntry) => void;
   readonly onUpdateCrop: (entry: CropEditEntry) => void;
   readonly onRemoveCrop: (id: string) => void;
@@ -22,6 +27,7 @@ function parseGrowthStages(raw: string): readonly number[] {
 function CropCard(props: {
   readonly entry: CropEditEntry;
   readonly objects: readonly ObjectEditEntry[];
+  readonly assets: readonly LinkedAssetEntry[];
   readonly onUpdate: (entry: CropEditEntry) => void;
   readonly onRemove: (id: string) => void;
 }): React.JSX.Element {
@@ -108,6 +114,28 @@ function CropCard(props: {
           }}
         />
       </label>
+      {props.assets.length > 0 && (
+        <label className="form-field">
+          <span>Sprite Asset (Optional)</span>
+          <select
+            value={entry.assetId ?? ''}
+            onChange={(e) => {
+              const nextAsset = e.target.value;
+              props.onUpdate({
+                ...entry,
+                assetId: nextAsset.length > 0 ? nextAsset : undefined,
+              });
+            }}
+          >
+            <option value="">None (Vanilla/Default)</option>
+            {props.assets.map((asset) => (
+              <option key={asset.id} value={asset.id}>
+                {asset.relativePath}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
     </div>
   );
 }
@@ -150,6 +178,7 @@ export function CropWizard(props: CropWizardProps): React.JSX.Element {
               key={entry.id}
               entry={entry}
               objects={props.objects}
+              assets={props.assets ?? []}
               onUpdate={props.onUpdateCrop}
               onRemove={props.onRemoveCrop}
             />

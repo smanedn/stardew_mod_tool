@@ -1,17 +1,27 @@
 import {
   type CropEditEntry,
   type DialogueEditEntry,
+  type FishBehaviorId,
+  type FishEditEntry,
+  type FishWeatherId,
+  type FurnitureEditEntry,
+  type FurnitureTileSize,
+  type FurnitureTypeId,
+  type LinkedAssetEntry,
   type ObjectEditEntry,
   type SdvProjectEdit,
   type SdvProjectFile,
 } from '../../data/models/index.js';
-import { extractZipEntries } from './browser-zip.js';
+import { type BrowserZipEntry, extractZipEntries } from './browser-zip.js';
 import { importManifestJsonToProject } from './project-templates.js';
 
 export interface ModImportSummary {
   readonly itemsCount: number;
   readonly cropsCount: number;
   readonly dialoguesCount: number;
+  readonly furnitureCount: number;
+  readonly fishCount: number;
+  readonly assetsCount: number;
   readonly totalPatchesRead: number;
   readonly skippedPatches: number;
 }
@@ -256,21 +266,141 @@ function extractDialogueEdits(
   return results;
 }
 
+function parseFurnitureTileSize(dims: string | undefined): FurnitureTileSize {
+  if (dims === '2 1') {
+    return '2x1';
+  }
+  if (dims === '2 2') {
+    return '2x2';
+  }
+  return '1x1';
+}
+
+function parseFurnitureType(raw: string | undefined): FurnitureTypeId {
+  if (raw === 'table' || raw === 'rug' || raw === 'lamp' || raw === 'painting') {
+    return raw;
+  }
+  return 'chair';
+}
+
+function extractFurnitureEdits(
+  entries: Readonly<Record<string, unknown>>,
+  nextId: () => string,
+): readonly FurnitureEditEntry[] {
+  const results: FurnitureEditEntry[] = [];
+  for (const [furnitureId, raw] of Object.entries(entries)) {
+    if (typeof raw !== 'string') {
+      continue;
+    }
+    const parts = raw.split('/');
+    const parsedPrice = Number.parseInt(parts[5] ?? '100', 10);
+    results.push({
+      kind: 'furniture',
+      id: nextId(),
+      furnitureId,
+      displayName: parts[0] ?? furnitureId,
+      furnitureType: parseFurnitureType(parts[1]),
+      tileSize: parseFurnitureTileSize(parts[2]),
+      price: Number.isNaN(parsedPrice) ? 100 : Math.max(0, parsedPrice),
+    });
+  }
+  return results;
+}
+
+function parseFishBehavior(raw: string | undefined): FishBehaviorId {
+  return raw === 'dart' || raw === 'sinker' || raw === 'floater' ? raw : 'smooth';
+}
+
+function parseFishWeather(raw: string | undefined): FishWeatherId {
+  return raw === 'sunny' || raw === 'rainy' ? raw : 'both';
+}
+
+function extractFishEdits(
+  entries: Readonly<Record<string, unknown>>,
+  nextId: () => string,
+): readonly FishEditEntry[] {
+  const results: FishEditEntry[] = [];
+  for (const [fishId, raw] of Object.entries(entries)) {
+    if (typeof raw !== 'string') {
+      continue;
+    }
+    const parts = raw.split('/');
+    const seasons = (parts[6] ?? 'spring')
+      .split(/\s+/)
+      .map((s) => VALID_SEASONS.get(s.toLowerCase()))
+      .filter((s): s is CropEditEntry['seasons'][number] => s !== undefined);
+    results.push({
+      kind: 'fish',
+      id: nextId(),
+      fishId,
+      displayName: parts[0] ?? fishId,
+      difficulty: Math.min(110, Math.max(5, Number.parseInt(parts[1] ?? '45', 10) || 45)),
+      behavior: parseFishBehavior(parts[2]),
+      minSize: Math.max(1, Number.parseInt(parts[3] ?? '8', 10) || 8),
+      maxSize: Math.max(1, Number.parseInt(parts[4] ?? '24', 10) || 24),
+      seasons: seasons.length > 0 ? seasons : ['Spring'],
+      weather: parseFishWeather(parts[7]),
+      waterLocation: 'River',
+      price: 100,
+    });
+  }
+  return results;
+}
+
 interface MutableImportAccumulator {
   readonly edits: SdvProjectEdit[];
   itemsCount: number;
   cropsCount: number;
   dialoguesCount: number;
+  furnitureCount: number;
+  fishCount: number;
   totalPatchesRead: number;
   skippedPatches: number;
   editSeq: number;
+}
+
+function dispatchEditDataPatch(
+  target: string,
+  entries: Readonly<Record<string, unknown>>,
+  patch: Readonly<Record<string, unknown>>,
+  acc: MutableImportAccumulator,
+): void {
+  const nextId = (): string => `imported-edit-${String(acc.editSeq++)}`;
+  const lower = target.toLowerCase();
+  if (lower === 'data/objects') {
+    const res = extractObjectEdits(entries, nextId);
+    acc.edits.push(...res);
+    acc.itemsCount += res.length;
+  } else if (lower === 'data/crops') {
+    const res = extractCropEdits(entries, nextId);
+    acc.edits.push(...res);
+    acc.cropsCount += res.length;
+  } else if (lower === 'data/furniture') {
+    const res = extractFurnitureEdits(entries, nextId);
+    acc.edits.push(...res);
+    acc.furnitureCount += res.length;
+  } else if (lower === 'data/fish') {
+    const res = extractFishEdits(entries, nextId);
+    acc.edits.push(...res);
+    acc.fishCount += res.length;
+  } else if (lower.startsWith('characters/dialogue/')) {
+    const npcName = target.slice('Characters/Dialogue/'.length).trim();
+    if (npcName.length === 0) {
+      acc.skippedPatches += 1;
+      return;
+    }
+    const res = extractDialogueEdits(npcName, entries, extractWhenRecord(patch['When']), nextId);
+    acc.edits.push(...res);
+    acc.dialoguesCount += res.length;
+  } else {
+    acc.skippedPatches += 1;
+  }
 }
 
 function processContentPatch(
   patch: Readonly<Record<string, unknown>>,
   acc: MutableImportAccumulator,
 ): void {
-  const nextId = (): string => `imported-edit-${String(acc.editSeq++)}`;
   acc.totalPatchesRead += 1;
   const action = readStringField(patch, 'Action', '');
   const target = readStringField(patch, 'Target', '');
@@ -280,53 +410,33 @@ function processContentPatch(
     acc.skippedPatches += 1;
     return;
   }
+  dispatchEditDataPatch(target, entries, patch, acc);
+}
 
-  const lowerTarget = target.toLowerCase();
-  if (lowerTarget === 'data/objects') {
-    const extracted = extractObjectEdits(entries, nextId);
-    acc.edits.push(...extracted);
-    acc.itemsCount += extracted.length;
-  } else if (lowerTarget === 'data/crops') {
-    const extracted = extractCropEdits(entries, nextId);
-    acc.edits.push(...extracted);
-    acc.cropsCount += extracted.length;
-  } else if (lowerTarget.startsWith('characters/dialogue/')) {
-    const npcName = target.slice('Characters/Dialogue/'.length).trim();
-    if (npcName.length === 0) {
-      acc.skippedPatches += 1;
-      return;
-    }
-    const extracted = extractDialogueEdits(
-      npcName,
-      entries,
-      extractWhenRecord(patch['When']),
-      nextId,
-    );
-    acc.edits.push(...extracted);
-    acc.dialoguesCount += extracted.length;
-  } else {
-    acc.skippedPatches += 1;
-  }
+function createImportAccumulator(): MutableImportAccumulator {
+  return {
+    edits: [],
+    itemsCount: 0,
+    cropsCount: 0,
+    dialoguesCount: 0,
+    furnitureCount: 0,
+    fishCount: 0,
+    totalPatchesRead: 0,
+    skippedPatches: 0,
+    editSeq: 1,
+  };
 }
 
 /**
  * Imports manifest.json and optional content.json from an existing Content Patcher mod
- * into an editable .sdvproj project with items, crops, and dialogues populated.
+ * into an editable .sdvproj project with items, crops, dialogues, furniture, and fish.
  */
 export function importContentPatcherMod(input: {
   readonly manifestJson: string;
   readonly contentJson?: string;
 }): ModImportResult {
   const baseProject = importManifestJsonToProject(stripSmapiJsonFormatting(input.manifestJson));
-  const acc: MutableImportAccumulator = {
-    edits: [],
-    itemsCount: 0,
-    cropsCount: 0,
-    dialoguesCount: 0,
-    totalPatchesRead: 0,
-    skippedPatches: 0,
-    editSeq: 1,
-  };
+  const acc = createImportAccumulator();
 
   if (input.contentJson !== undefined && input.contentJson.trim().length > 0) {
     const parsedContent: unknown = JSON.parse(stripSmapiJsonFormatting(input.contentJson));
@@ -347,6 +457,9 @@ export function importContentPatcherMod(input: {
       itemsCount: acc.itemsCount,
       cropsCount: acc.cropsCount,
       dialoguesCount: acc.dialoguesCount,
+      furnitureCount: acc.furnitureCount,
+      fishCount: acc.fishCount,
+      assetsCount: 0,
       totalPatchesRead: acc.totalPatchesRead,
       skippedPatches: acc.skippedPatches,
     },
@@ -363,8 +476,41 @@ function getDirName(path: string): string {
   return idx >= 0 ? path.slice(0, idx) : '';
 }
 
+function encodeBytesToBase64(bytes: Uint8Array): string {
+  let binary = '';
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+  return btoa(binary);
+}
+
+function extractPngAssetsFromZip(
+  entries: readonly BrowserZipEntry[],
+  rootDir: string,
+): readonly LinkedAssetEntry[] {
+  const prefix = rootDir.length > 0 ? `${rootDir}/` : '';
+  const assets: LinkedAssetEntry[] = [];
+  let seq = 1;
+  for (const entry of entries) {
+    if (!entry.path.toLowerCase().endsWith('.png')) {
+      continue;
+    }
+    const relPath =
+      prefix.length > 0 && entry.path.startsWith(prefix)
+        ? entry.path.slice(prefix.length)
+        : entry.path;
+    assets.push({
+      id: `imported-asset-${String(seq++)}`,
+      relativePath: relPath,
+      kind: 'png',
+      dataBase64: encodeBytesToBase64(entry.data),
+    });
+  }
+  return assets;
+}
+
 /**
- * Unpacks a Content Patcher mod .zip archive and imports its manifest.json + content.json.
+ * Unpacks a Content Patcher mod .zip archive and imports manifest.json, content.json, and PNGs.
  */
 export async function importModFromZipBytes(zipBytes: Uint8Array): Promise<ModImportResult> {
   const entries = await extractZipEntries(zipBytes);
@@ -390,6 +536,11 @@ export async function importModFromZipBytes(zipBytes: Uint8Array): Promise<ModIm
   const decoder = new TextDecoder();
   const manifestJson = decoder.decode(manifestEntry.data);
   const contentJson = contentEntry !== undefined ? decoder.decode(contentEntry.data) : undefined;
+  const assets = extractPngAssetsFromZip(entries, rootDir);
+  const imported = importContentPatcherMod({ manifestJson, contentJson });
 
-  return importContentPatcherMod({ manifestJson, contentJson });
+  return {
+    project: { ...imported.project, assets },
+    summary: { ...imported.summary, assetsCount: assets.length },
+  };
 }
